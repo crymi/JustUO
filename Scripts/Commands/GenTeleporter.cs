@@ -424,6 +424,15 @@ namespace Server.Commands
                 this.CreateTeleporter(5906, 4069, 26, 2494, 3576, 5, map, true);
                 this.CreateTeleporter(2985, 2890, 35, 5974, 2697, 35, map, false);
 
+                //New Haven Mine (New Dungeon)
+                this.CreateTeleporter(3508, 2777, 26, 5913, 355, 0, map, false);
+                this.CreateTeleporter(3508, 2778, 26, 5913, 355, 0, map, false);
+
+                this.CreateTeleporter(5912, 354, 0, 3509, 2778, 26, map, false);
+                this.CreateTeleporter(5912, 355, 0, 3509, 2778, 26, map, false);
+                this.CreateTeleporter(5912, 356, 0, 3509, 2778, 26, map, false); 
+
+
                 // Mondain's Legacy dungeons
 
                 // Sanctuary
