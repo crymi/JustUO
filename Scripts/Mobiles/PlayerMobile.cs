@@ -61,6 +61,9 @@ namespace Server.Mobiles
 		AcceptGuildInvites = 0x00000800,
 		DisplayChampionTitle = 0x00001000,
 		HasStatReward = 0x00002000,
+        #region Insurance and Trades
+        RefuseTrades = 0x00004000, 
+        #endregion
 		Bedlam = 0x00010000,
 		LibraryFriend = 0x00020000,
 		Spellweaving = 0x00040000,
@@ -382,6 +385,11 @@ namespace Server.Mobiles
 
 		[CommandProperty(AccessLevel.GameMaster)]
 		public bool HasStatReward { get { return GetFlag(PlayerFlag.HasStatReward); } set { SetFlag(PlayerFlag.HasStatReward, value); } }
+
+        #region Insurance and Trades
+        [CommandProperty(AccessLevel.GameMaster)]
+        public bool RefuseTrades { get { return GetFlag(PlayerFlag.RefuseTrades); } set { SetFlag(PlayerFlag.RefuseTrades, value); } } 
+        #endregion
 
 		#region QueensLoyaltySystem
 		private long m_LevelExp; // Experience Needed for next Experience Level
@@ -1761,10 +1769,14 @@ namespace Server.Mobiles
 					m_Quest.GetContextMenuEntries(list);
 				}
 
-				if (Alive && InsuranceEnabled)
-				{
-					list.Add(new CallbackEntry(6201, ToggleItemInsurance));
-
+                if (Alive && InsuranceEnabled)
+                {
+                    #region Insurance and Trades
+                    if (Core.SA)
+                        list.Add(new CallbackEntry(1114299, new ContextCallback(OpenItemInsuranceMenu))); // Open Item Insurance Menu 
+                    #endregion
+                    list.Add(new CallbackEntry(6201, ToggleItemInsurance));
+                    /*
 					if (AutoRenewInsurance)
 					{
 						list.Add(new CallbackEntry(6202, CancelRenewInventoryInsurance));
@@ -1774,7 +1786,17 @@ namespace Server.Mobiles
 						list.Add(new CallbackEntry(6200, AutoRenewInventoryInsurance));
 					}
 				}
-
+*/
+                    #region Insurance and Trades
+                    if (!Core.SA)
+                    {
+                        if (AutoRenewInsurance)
+                            list.Add(new CallbackEntry(6202, new ContextCallback(CancelRenewInventoryInsurance))); // Cancel Renewing Inventory Insurance
+                        else
+                            list.Add(new CallbackEntry(6200, new ContextCallback(AutoRenewInventoryInsurance))); // Auto Renew Inventory Insurance
+                    }
+                } 
+                    #endregion
 				BaseHouse house = BaseHouse.FindHouseAt(this);
 
 				if (house != null)
@@ -1798,6 +1820,10 @@ namespace Server.Mobiles
 				if (Alive)
 				{
 					list.Add(new CallbackEntry(6210, ToggleChampionTitleDisplay));
+                    #region Insurance and Trades
+                    if (Core.HS)
+                        list.Add(new CallbackEntry(RefuseTrades ? 1154112 : 1154113, new ContextCallback(ToggleTrades))); // Allow Trades / Refuse Trades 
+                    #endregion
 				}
 
 				#region Mondain's Legacy
@@ -1866,6 +1892,12 @@ namespace Server.Mobiles
 		}
 
 		#region Insurance
+        #region Insurance and Trades
+        private static int GetInsuranceCost(Item item)
+        {
+            return 600; // TODO
+        } 
+        #endregion
 		private void ToggleItemInsurance()
 		{
 			if (!CheckAlive())
@@ -1886,1282 +1918,1637 @@ namespace Server.Mobiles
 			}
 			#endregion
 
-			if (((item is Container) && !(item is BaseQuiver)) || item is BagOfSending || item is KeyRing)
-			{
-				return false;
+            #region Insurance and Trades
+            if (((item is Container) && !(item is BaseQuiver)) || item is BagOfSending || item is KeyRing || item is PotionKeg || item is Sigil)
+            {
+                return false;
+            }
+            /*if (((item is Container) && !(item is BaseQuiver)) || item is BagOfSending || item is KeyRing  || item is PotionKeg || item is Sigil)
+            {
+                return false;
+            }
+             */
+            #endregion
+
+            #region Insurance and Trades
+            /*if ((item is Spellbook && item.LootType == LootType.Blessed) || item is Runebook || item is PotionKeg ||
+                    item is Sigil)
+            {
+                return false; 
+              */
+            #endregion
+            
+
+            if (item.Stackable)
+            {
+                return false;
+            }
+
+            if (item.LootType == LootType.Cursed)
+            {
+                return false;
+            }
+
+            if (item.ItemID == 0x204E) // death shroud
+            {
+                return false;
+            }
+
+            #region Insurance and Trades
+            if (item.LootType == LootType.Blessed || item.LootType == LootType.Newbied || item.BlessedFor == this)
+            {
+                //SendLocalizedMessage( 1060870, "", 0x23 ); // That item is blessed and does not need to be insured
+                return false;
+            } 
+            #endregion
+            return true;
+        }
+
+        private void ToggleItemInsurance_Callback(Mobile from, object obj)
+        {
+            if (!CheckAlive())
+            {
+                return;
+            }
+
+            #region Insurance and Trades
+		//Item item = obj as Item;
+            ToggleItemInsurance_Callback( from, obj as Item, true );
 			}
+		
+			private void ToggleItemInsurance_Callback( Mobile from, Item item, bool target )
+			{ 
+	#endregion
+            if (item == null || !item.IsChildOf(this))
+            {
+               #region Insurance and Trades
+		 //BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+					if ( target )
+						BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) ); 
+	#endregion
+                SendLocalizedMessage(1060871, "", 0x23);
+                // You can only insure items that you have equipped or that are in your backpack
+            }
+            else if (item.Insured)
+            {
+                item.Insured = false;
 
-			if ((item is Spellbook && item.LootType == LootType.Blessed) || item is Runebook || item is PotionKeg ||
-				item is Sigil)
-			{
-				return false;
-			}
+                SendLocalizedMessage(1060874, "", 0x35); // You cancel the insurance on the item
 
-			if (item.Stackable)
-			{
-				return false;
-			}
+               #region Insurance and Trades
+		 //BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+					//SendLocalizedMessage( 1060868, "", 0x23 ); // Target the item you wish to toggle insurance status on <ESC> to cancel
+					if ( target )
+					{
+						BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+						SendLocalizedMessage( 1060868, "", 0x23 ); // Target the item you wish to toggle insurance status on <ESC> to cancel
+					} 
+	#endregion
+            }
+            else if (!CanInsure(item))
+            {
+                #region Insurance and Trades
+		//BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+					if ( target )
+						BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) ); 
+	#endregion
+            }
+            #region Insurance and Trades
+                /*
+            else if (item.LootType == LootType.Blessed || item.LootType == LootType.Newbied || item.BlessedFor == from)
+            {
+                BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
+                SendLocalizedMessage(1060870, "", 0x23); // That item is blessed and does not need to be insured
+                SendLocalizedMessage(1060869, "", 0x23); // You cannot insure that
+            } 
+                  */
+            #endregion
+            else
+            {
+                if (!item.PayedInsurance)
+                {
+                    #region Insurance and Trades
+                    //if (Banker.Withdraw(from, 600)) 
+                        int cost = GetInsuranceCost( item );
+	
+						if ( Banker.Withdraw( from, cost ) )
+                    #endregion
+                    {
+                        #region Insurance and Trades
+                        //SendLocalizedMessage(1060398, "600"); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                        SendLocalizedMessage(1060398, cost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box. 
+                        #endregion
+                        item.PayedInsurance = true;
+                    }
+                    else
+                    {
+                        SendLocalizedMessage(1061079, "", 0x23); // You lack the funds to purchase the insurance
+                        return;
+                    }
+                }
 
-			if (item.LootType == LootType.Cursed)
-			{
-				return false;
-			}
+                item.Insured = true;
 
-			if (item.ItemID == 0x204E) // death shroud
-			{
-				return false;
-			}
+                SendLocalizedMessage(1060873, "", 0x23); // You have insured the item
 
-			return true;
-		}
+               #region Insurance and Trades
+		 //BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+					//SendLocalizedMessage( 1060868, "", 0x23 ); // Target the item you wish to toggle insurance status on <ESC> to cancel
+					if ( target )
+					{
+						BeginTarget( -1, false, TargetFlags.None, new TargetCallback( ToggleItemInsurance_Callback ) );
+						SendLocalizedMessage( 1060868, "", 0x23 ); // Target the item you wish to toggle insurance status on <ESC> to cancel
+					} 
+	#endregion
+            }
+        }
 
-		private void ToggleItemInsurance_Callback(Mobile from, object obj)
+        private void AutoRenewInventoryInsurance()
+        {
+            if (!CheckAlive())
+            {
+                return;
+            }
+
+            SendLocalizedMessage(1060881, "", 0x23); // You have selected to automatically reinsure all insured items upon death
+            AutoRenewInsurance = true;
+        }
+
+        private void CancelRenewInventoryInsurance()
+        {
+            if (!CheckAlive())
+            {
+                return;
+            }
+
+            if (Core.SE)
+            {
+                if (!HasGump(typeof(CancelRenewInventoryInsuranceGump)))
+                {
+                    #region Insurance and Trades
+                    //SendGump(new CancelRenewInventoryInsuranceGump(this));
+                    SendGump(new CancelRenewInventoryInsuranceGump(this, null)); 
+                    #endregion
+                }
+            }
+            else
+            {
+                SendLocalizedMessage(1061075, "", 0x23); // You have cancelled automatically reinsuring all insured items upon death
+                AutoRenewInsurance = false;
+            }
+        }
+
+        private class CancelRenewInventoryInsuranceGump : Gump
+        {
+            private readonly PlayerMobile m_Player;
+            #region Insurance and Trades
+            private ItemInsuranceMenuGump m_InsuranceGump; 
+            #endregion
+
+            #region Insurance and Trades
+		        //public CancelRenewInventoryInsuranceGump(PlayerMobile player) : base(250, 200)
+                public CancelRenewInventoryInsuranceGump( PlayerMobile player, ItemInsuranceMenuGump insuranceGump ) : base( 250, 200 ) 
+	#endregion
+            {
+                m_Player = player;
+                #region Insurance and Trades
+                m_InsuranceGump = insuranceGump; 
+                #endregion
+
+                AddBackground(0, 0, 240, 142, 0x13BE);
+                AddImageTiled(6, 6, 228, 100, 0xA40);
+                AddImageTiled(6, 116, 228, 20, 0xA40);
+                AddAlphaRegion(6, 6, 228, 142);
+
+                AddHtmlLocalized(8, 8, 228, 100, 1071021, 0x7FFF, false, false);
+                // You are about to disable inventory insurance auto-renewal.
+
+                AddButton(6, 116, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(40, 118, 450, 20, 1060051, 0x7FFF, false, false); // CANCEL
+
+                AddButton(114, 116, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
+                AddHtmlLocalized(148, 118, 450, 20, 1071022, 0x7FFF, false, false); // DISABLE IT!
+            }
+
+            public override void OnResponse(NetState sender, RelayInfo info)
+            {
+                if (!m_Player.CheckAlive())
+                {
+                    return;
+                }
+
+                if (info.ButtonID == 1)
+                {
+                    m_Player.SendLocalizedMessage(1061075, "", 0x23);
+                    // You have cancelled automatically reinsuring all insured items upon death
+                    m_Player.AutoRenewInsurance = false;
+                }
+                else
+                {
+                    m_Player.SendLocalizedMessage(1042021); // Cancelled.
+                }
+                #region Insurance and Trades
+                if (m_InsuranceGump != null)
+                    m_Player.SendGump(m_InsuranceGump.NewInstance()); 
+                #endregion
+            }
+        }
+        #region Insurance and Traades
+        private void OpenItemInsuranceMenu()
 		{
-			if (!CheckAlive())
-			{
+			if ( !CheckAlive() )
 				return;
-			}
 
-			Item item = obj as Item;
+			List<Item> items = new List<Item>();
 
-			if (item == null || !item.IsChildOf(this))
+			foreach ( Item item in Items )
 			{
-				BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
-				SendLocalizedMessage(1060871, "", 0x23);
-				// You can only insure items that you have equipped or that are in your backpack
-			}
-			else if (item.Insured)
-			{
-				item.Insured = false;
-
-				SendLocalizedMessage(1060874, "", 0x35); // You cancel the insurance on the item
-
-				BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
-				SendLocalizedMessage(1060868, "", 0x23); // Target the item you wish to toggle insurance status on <ESC> to cancel
-			}
-			else if (!CanInsure(item))
-			{
-				BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
-				SendLocalizedMessage(1060869, "", 0x23); // You cannot insure that
-			}
-			else if (item.LootType == LootType.Blessed || item.LootType == LootType.Newbied || item.BlessedFor == from)
-			{
-				BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
-				SendLocalizedMessage(1060870, "", 0x23); // That item is blessed and does not need to be insured
-				SendLocalizedMessage(1060869, "", 0x23); // You cannot insure that
-			}
-			else
-			{
-				if (!item.PayedInsurance)
-				{
-					if (Banker.Withdraw(from, 600))
-					{
-						SendLocalizedMessage(1060398, "600"); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
-						item.PayedInsurance = true;
-					}
-					else
-					{
-						SendLocalizedMessage(1061079, "", 0x23); // You lack the funds to purchase the insurance
-						return;
-					}
-				}
-
-				item.Insured = true;
-
-				SendLocalizedMessage(1060873, "", 0x23); // You have insured the item
-
-				BeginTarget(-1, false, TargetFlags.None, ToggleItemInsurance_Callback);
-				SendLocalizedMessage(1060868, "", 0x23); // Target the item you wish to toggle insurance status on <ESC> to cancel
-			}
-		}
-
-		private void AutoRenewInventoryInsurance()
-		{
-			if (!CheckAlive())
-			{
-				return;
-			}
-
-			SendLocalizedMessage(1060881, "", 0x23); // You have selected to automatically reinsure all insured items upon death
-			AutoRenewInsurance = true;
-		}
-
-		private void CancelRenewInventoryInsurance()
-		{
-			if (!CheckAlive())
-			{
-				return;
-			}
-
-			if (Core.SE)
-			{
-				if (!HasGump(typeof(CancelRenewInventoryInsuranceGump)))
-				{
-					SendGump(new CancelRenewInventoryInsuranceGump(this));
-				}
-			}
-			else
-			{
-				SendLocalizedMessage(1061075, "", 0x23); // You have cancelled automatically reinsuring all insured items upon death
-				AutoRenewInsurance = false;
-			}
-		}
-
-		private class CancelRenewInventoryInsuranceGump : Gump
-		{
-			private readonly PlayerMobile m_Player;
-
-			public CancelRenewInventoryInsuranceGump(PlayerMobile player)
-				: base(250, 200)
-			{
-				m_Player = player;
-
-				AddBackground(0, 0, 240, 142, 0x13BE);
-				AddImageTiled(6, 6, 228, 100, 0xA40);
-				AddImageTiled(6, 116, 228, 20, 0xA40);
-				AddAlphaRegion(6, 6, 228, 142);
-
-				AddHtmlLocalized(8, 8, 228, 100, 1071021, 0x7FFF, false, false);
-				// You are about to disable inventory insurance auto-renewal.
-
-				AddButton(6, 116, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0);
-				AddHtmlLocalized(40, 118, 450, 20, 1060051, 0x7FFF, false, false); // CANCEL
-
-				AddButton(114, 116, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0);
-				AddHtmlLocalized(148, 118, 450, 20, 1071022, 0x7FFF, false, false); // DISABLE IT!
-			}
-
-			public override void OnResponse(NetState sender, RelayInfo info)
-			{
-				if (!m_Player.CheckAlive())
-				{
-					return;
-				}
-
-				if (info.ButtonID == 1)
-				{
-					m_Player.SendLocalizedMessage(1061075, "", 0x23);
-					// You have cancelled automatically reinsuring all insured items upon death
-					m_Player.AutoRenewInsurance = false;
-				}
-				else
-				{
-					m_Player.SendLocalizedMessage(1042021); // Cancelled.
-				}
-			}
-		}
-		#endregion
-
-		private void GetVendor()
-		{
-			BaseHouse house = BaseHouse.FindHouseAt(this);
-
-			if (CheckAlive() && house != null && house.IsOwner(this) && house.InternalizedVendors.Count > 0)
-			{
-				CloseGump(typeof(ReclaimVendorGump));
-				SendGump(new ReclaimVendorGump(house));
-			}
-		}
-
-		private void LeaveHouse()
-		{
-			BaseHouse house = BaseHouse.FindHouseAt(this);
-
-			if (house != null)
-			{
-				Location = house.BanLocation;
-			}
-		}
-
-		private delegate void ContextCallback();
-
-		private class CallbackEntry : ContextMenuEntry
-		{
-			private readonly ContextCallback m_Callback;
-
-			public CallbackEntry(int number, ContextCallback callback)
-				: this(number, -1, callback)
-			{ }
-
-			public CallbackEntry(int number, int range, ContextCallback callback)
-				: base(number, range)
-			{
-				m_Callback = callback;
-			}
-
-			public override void OnClick()
-			{
-				if (m_Callback != null)
-				{
-					m_Callback();
-				}
-			}
-		}
-
-		public override void DisruptiveAction()
-		{
-			if (Meditating)
-			{
-				RemoveBuff(BuffIcon.ActiveMeditation);
-			}
-
-			base.DisruptiveAction();
-		}
-
-		public override void OnDoubleClick(Mobile from)
-		{
-			if (this == from && !Warmode)
-			{
-				IMount mount = Mount;
-
-				if (mount != null && !DesignContext.Check(this))
-				{
-					return;
-				}
-			}
-
-			base.OnDoubleClick(from);
-		}
-
-		public override void DisplayPaperdollTo(Mobile to)
-		{
-			if (DesignContext.Check(this))
-			{
-				base.DisplayPaperdollTo(to);
-			}
-		}
-
-		private static bool m_NoRecursion;
-
-		public override bool CheckEquip(Item item)
-		{
-			if (!base.CheckEquip(item))
-			{
-				return false;
-			}
-
-			#region Dueling
-			if (m_DuelContext != null && !m_DuelContext.AllowItemEquip(this, item))
-			{
-				return false;
-			}
-			#endregion
-
-			#region Factions
-			FactionItem factionItem = FactionItem.Find(item);
-
-			if (factionItem != null)
-			{
-				Faction faction = Faction.Find(this);
-
-				if (faction == null)
-				{
-					SendLocalizedMessage(1010371); // You cannot equip a faction item!
-					return false;
-				}
-				else if (faction != factionItem.Faction)
-				{
-					SendLocalizedMessage(1010372); // You cannot equip an opposing faction's item!
-					return false;
-				}
-				else
-				{
-					int maxWearables = FactionItem.GetMaxWearables(this);
-
-					for (int i = 0; i < Items.Count; ++i)
-					{
-						Item equiped = Items[i];
-
-						if (item != equiped && FactionItem.Find(equiped) != null)
-						{
-							if (--maxWearables == 0)
-							{
-								SendLocalizedMessage(1010373); // You do not have enough rank to equip more faction items!
-								return false;
-							}
-						}
-					}
-				}
-			}
-			#endregion
-
-			if (AccessLevel < AccessLevel.GameMaster && item.Layer != Layer.Mount && HasTrade)
-			{
-				BounceInfo bounce = item.GetBounce();
-
-				if (bounce != null)
-				{
-					if (bounce.m_Parent is Item)
-					{
-						Item parent = (Item)bounce.m_Parent;
-
-						if (parent == Backpack || parent.IsChildOf(Backpack))
-						{
-							return true;
-						}
-					}
-					else if (bounce.m_Parent == this)
-					{
-						return true;
-					}
-				}
-
-				SendLocalizedMessage(1004042); // You can only equip what you are already carrying while you have a trade pending.
-				return false;
-			}
-
-			return true;
-		}
-
-		public override bool CheckTrade(
-			Mobile to, Item item, SecureTradeContainer cont, bool message, bool checkItems, int plusItems, int plusWeight)
-		{
-			int msgNum = 0;
-
-			if (cont == null)
-			{
-				if (to.Holding != null)
-				{
-					msgNum = 1062727; // You cannot trade with someone who is dragging something.
-				}
-				else if (HasTrade)
-				{
-					msgNum = 1062781; // You are already trading with someone else!
-				}
-				else if (to.HasTrade)
-				{
-					msgNum = 1062779; // That person is already involved in a trade
-				}
-			}
-
-			if (msgNum == 0)
-			{
-				if (cont != null)
-				{
-					plusItems += cont.TotalItems;
-					plusWeight += cont.TotalWeight;
-				}
-
-				if (Backpack == null || !Backpack.CheckHold(this, item, false, checkItems, plusItems, plusWeight))
-				{
-					msgNum = 1004040; // You would not be able to hold this if the trade failed.
-				}
-				else if (to.Backpack == null || !to.Backpack.CheckHold(to, item, false, checkItems, plusItems, plusWeight))
-				{
-					msgNum = 1004039; // The recipient of this trade would not be able to carry this.
-				}
-				else
-				{
-					msgNum = CheckContentForTrade(item);
-				}
-			}
-
-			if (msgNum != 0)
-			{
-				if (message)
-				{
-					SendLocalizedMessage(msgNum);
-				}
-
-				return false;
-			}
-
-			return true;
-		}
-
-		private static int CheckContentForTrade(Item item)
-		{
-			if (item is TrapableContainer && ((TrapableContainer)item).TrapType != TrapType.None)
-			{
-				return 1004044; // You may not trade trapped items.
-			}
-
-			if (StolenItem.IsStolen(item))
-			{
-				return 1004043; // You may not trade recently stolen items.
-			}
-
-			if (item is Container)
-			{
-				foreach (Item subItem in item.Items)
-				{
-					int msg = CheckContentForTrade(subItem);
-
-					if (msg != 0)
-					{
-						return msg;
-					}
-				}
-			}
-
-			return 0;
-		}
-
-		public override bool CheckNonlocalDrop(Mobile from, Item item, Item target)
-		{
-			if (!base.CheckNonlocalDrop(from, item, target))
-			{
-				return false;
-			}
-
-			if (from.AccessLevel >= AccessLevel.GameMaster)
-			{
-				return true;
+				if ( DisplayInItemInsuranceGump( item ) )
+					items.Add( item );
 			}
 
 			Container pack = Backpack;
-			if (from == this && HasTrade && (target == pack || target.IsChildOf(pack)))
-			{
-				BounceInfo bounce = item.GetBounce();
 
-				if (bounce != null && bounce.m_Parent is Item)
-				{
-					Item parent = (Item)bounce.m_Parent;
+			if ( pack != null )
+				items.AddRange( pack.FindItemsByType<Item>( true, DisplayInItemInsuranceGump ) );
 
-					if (parent == pack || parent.IsChildOf(pack))
-					{
-						return true;
-					}
-				}
+			// TODO: Investigate item sorting
 
-				SendLocalizedMessage(1004041); // You can't do that while you have a trade pending.
-				return false;
-			}
+			CloseGump( typeof( ItemInsuranceMenuGump ) );
 
-			return true;
-		}
-
-		protected override void OnLocationChange(Point3D oldLocation)
-		{
-			CheckLightLevels(false);
-
-			#region Dueling
-			if (m_DuelContext != null)
-			{
-				m_DuelContext.OnLocationChanged(this);
-			}
-			#endregion
-
-			DesignContext context = m_DesignContext;
-
-			if (context == null || m_NoRecursion)
-			{
-				return;
-			}
-
-			m_NoRecursion = true;
-
-			HouseFoundation foundation = context.Foundation;
-
-			int newX = X, newY = Y;
-			int newZ = foundation.Z + HouseFoundation.GetLevelZ(context.Level, context.Foundation);
-
-			int startX = foundation.X + foundation.Components.Min.X + 1;
-			int startY = foundation.Y + foundation.Components.Min.Y + 1;
-			int endX = startX + foundation.Components.Width - 1;
-			int endY = startY + foundation.Components.Height - 2;
-
-			if (newX >= startX && newY >= startY && newX < endX && newY < endY && Map == foundation.Map)
-			{
-				if (Z != newZ)
-				{
-					Location = new Point3D(X, Y, newZ);
-				}
-
-				m_NoRecursion = false;
-				return;
-			}
-
-			Location = new Point3D(foundation.X, foundation.Y, newZ);
-			Map = foundation.Map;
-
-			m_NoRecursion = false;
-		}
-
-		public override bool OnMoveOver(Mobile m)
-		{
-			if (m is BaseCreature && !((BaseCreature)m).Controlled)
-			{
-				return (!Alive || !m.Alive || IsDeadBondedPet || m.IsDeadBondedPet) || (Hidden && IsStaff());
-			}
-
-			#region Dueling
-			if (Region.IsPartOf(typeof(SafeZone)) && m is PlayerMobile)
-			{
-				PlayerMobile pm = (PlayerMobile)m;
-
-				if (pm.DuelContext == null || pm.DuelPlayer == null || !pm.DuelContext.Started || pm.DuelContext.Finished ||
-					pm.DuelPlayer.Eliminated)
-				{
-					return true;
-				}
-			}
-			#endregion
-
-			return base.OnMoveOver(m);
-		}
-
-		public override bool CheckShove(Mobile shoved)
-		{
-			if (TransformationSpellHelper.UnderTransformation(shoved, typeof(WraithFormSpell)))
-			{
-				return true;
-			}
+			if ( items.Count == 0 )
+				SendLocalizedMessage( 1114915, "", 0x35 ); // None of your current items meet the requirements for insurance.
 			else
-			{
-				return base.CheckShove(shoved);
-			}
+				SendGump( new ItemInsuranceMenuGump( this, items.ToArray() ) );
 		}
 
-		protected override void OnMapChange(Map oldMap)
+		private bool DisplayInItemInsuranceGump( Item item )
 		{
-			if ((Map != Faction.Facet && oldMap == Faction.Facet) || (Map == Faction.Facet && oldMap != Faction.Facet))
-			{
-				InvalidateProperties();
-			}
-
-			#region Dueling
-			if (m_DuelContext != null)
-			{
-				m_DuelContext.OnMapChanged(this);
-			}
-			#endregion
-
-			DesignContext context = m_DesignContext;
-
-			if (context == null || m_NoRecursion)
-			{
-				return;
-			}
-
-			m_NoRecursion = true;
-
-			HouseFoundation foundation = context.Foundation;
-
-			if (Map != foundation.Map)
-			{
-				Map = foundation.Map;
-			}
-
-			m_NoRecursion = false;
+            return ((item.Visible || AccessLevel >= AccessLevel.GameMaster) && (item.Insured || CanInsure(item) && (item.Layer != Layer.Mount)));
 		}
 
-		public override void OnBeneficialAction(Mobile target, bool isCriminal)
+		private class ItemInsuranceMenuGump : Gump
 		{
-			if (m_SentHonorContext != null)
+			private PlayerMobile m_From;
+			private Item[] m_Items;
+			private bool[] m_Insure;
+			private int m_Page;
+
+			public ItemInsuranceMenuGump( PlayerMobile from, Item[] items )
+				: this( from, items, null, 0 )
 			{
-				m_SentHonorContext.OnSourceBeneficialAction(target);
 			}
 
-			base.OnBeneficialAction(target, isCriminal);
-		}
-
-		public override void OnDamage(int amount, Mobile from, bool willKill)
-		{
-			int disruptThreshold;
-
-			if (!Core.AOS)
+			public ItemInsuranceMenuGump( PlayerMobile from, Item[] items, bool[] insure, int page )
+				: base( 25, 50 )
 			{
-				disruptThreshold = 0;
-			}
-			else if (from != null && from.Player)
-			{
-				disruptThreshold = 18;
-			}
-			else
-			{
-				disruptThreshold = 25;
-			}
+				m_From = from;
+				m_Items = items;
 
-			if (amount > disruptThreshold)
-			{
-				BandageContext c = BandageContext.GetContext(this);
-
-				if (c != null)
+				if ( insure == null )
 				{
-					c.Slip();
-				}
-			}
+					insure = new bool[items.Length];
 
-			if (Confidence.IsRegenerating(this))
-			{
-				Confidence.StopRegenerating(this);
-			}
-
-			WeightOverloading.FatigueOnDamage(this, amount);
-
-			if (m_ReceivedHonorContext != null)
-			{
-				m_ReceivedHonorContext.OnTargetDamaged(from, amount);
-			}
-			if (m_SentHonorContext != null)
-			{
-				m_SentHonorContext.OnSourceDamaged(from, amount);
-			}
-
-			if (willKill && from is PlayerMobile)
-			{
-				Timer.DelayCall(TimeSpan.FromSeconds(10), ((PlayerMobile)@from).RecoverAmmo);
-			}
-
-			#region Mondain's Legacy
-			if (InvisibilityPotion.HasTimer(this))
-			{
-				InvisibilityPotion.Iterrupt(this);
-			}
-			#endregion
-
-			base.OnDamage(amount, from, willKill);
-		}
-
-		public override void Resurrect()
-		{
-			bool wasAlive = Alive;
-
-			base.Resurrect();
-
-			if (Alive && !wasAlive)
-			{
-				Item deathRobe = new DeathRobe();
-
-				if (!EquipItem(deathRobe))
-				{
-					deathRobe.Delete();
+					for ( int i = 0; i < items.Length; ++i )
+						insure[i] = items[i].Insured;
 				}
 
-				#region Scroll of Alacrity
-				if (AcceleratedStart > DateTime.UtcNow)
+				m_Insure = insure;
+				m_Page = page;
+
+				AddPage( 0 );
+
+				AddBackground( 0, 0, 520, 510, 0x13BE );
+				AddImageTiled( 10, 10, 500, 30, 0xA40 );
+				AddImageTiled( 10, 50, 500, 355, 0xA40 );
+				AddImageTiled( 10, 415, 500, 80, 0xA40 );
+				AddAlphaRegion( 10, 10, 500, 485 );
+
+				AddButton( 15, 470, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0 );
+				AddHtmlLocalized( 50, 472, 80, 20, 1011012, 0x7FFF, false, false ); // CANCEL
+
+				if ( from.AutoRenewInsurance )
+					AddButton( 360, 10, 9723, 9724, 1, GumpButtonType.Reply, 0 );
+				else
+					AddButton( 360, 10, 9720, 9722, 1, GumpButtonType.Reply, 0 );
+
+				AddHtmlLocalized( 395, 14, 105, 20, 1114122, 0x7FFF, false, false ); // AUTO REINSURE
+
+				AddButton( 395, 470, 0xFA5, 0xFA6, 2, GumpButtonType.Reply, 0 );
+				AddHtmlLocalized( 430, 472, 50, 20, 1006044, 0x7FFF, false, false ); // OK
+
+				AddHtmlLocalized( 10, 14, 150, 20, 1114121, 0x7FFF, false, false ); // <CENTER>ITEM INSURANCE MENU</CENTER>
+
+				AddHtmlLocalized( 45, 54, 70, 20, 1062214, 0x7FFF, false, false ); // Item
+				AddHtmlLocalized( 250, 54, 70, 20, 1061038, 0x7FFF, false, false ); // Cost
+				AddHtmlLocalized( 400, 54, 70, 20, 1114311, 0x7FFF, false, false ); // Insured
+
+				int balance = Banker.GetBalance( from );
+				int cost = 0;
+
+				for ( int i = 0; i < items.Length; ++i )
 				{
-					BuffInfo.AddBuff(this, new BuffInfo(BuffIcon.ArcaneEmpowerment, 1078511, 1078512, AcceleratedSkill.ToString()));
-				}
-				#endregion
-			}
-		}
-
-		public override double RacialSkillBonus
-		{
-			get
-			{
-				if (Core.ML && Race == Race.Human)
-				{
-					return 20.0;
-				}
-
-				return 0;
-			}
-		}
-
-		public override void OnWarmodeChanged()
-		{
-			if (!Warmode)
-			{
-				Timer.DelayCall(TimeSpan.FromSeconds(10), RecoverAmmo);
-			}
-		}
-
-		private Mobile m_InsuranceAward;
-		private int m_InsuranceCost;
-		private int m_InsuranceBonus;
-
-		private List<Item> m_EquipSnapshot;
-
-		public List<Item> EquipSnapshot { get { return m_EquipSnapshot; } }
-
-		private bool FindItems_Callback(Item item)
-		{
-			if (!item.Deleted && (item.LootType == LootType.Blessed || item.Insured))
-			{
-				if (Backpack != item.ParentEntity)
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
-		public override bool OnBeforeDeath()
-		{
-			NetState state = NetState;
-
-			if (state != null)
-			{
-				state.CancelAllTrades();
-			}
-
-			DropHolding();
-
-			if (Core.AOS && Backpack != null && !Backpack.Deleted)
-			{
-				var ilist = Backpack.FindItemsByType<Item>(FindItems_Callback);
-
-				for (int i = 0; i < ilist.Count; i++)
-				{
-					Backpack.AddItem(ilist[i]);
-				}
-			}
-
-			m_EquipSnapshot = new List<Item>(Items);
-
-			m_NonAutoreinsuredItems = 0;
-			m_InsuranceCost = 0;
-			m_InsuranceAward = base.FindMostRecentDamager(false);
-
-			if (m_InsuranceAward is BaseCreature)
-			{
-				Mobile master = ((BaseCreature)m_InsuranceAward).GetMaster();
-
-				if (master != null)
-				{
-					m_InsuranceAward = master;
-				}
-			}
-
-			if (m_InsuranceAward != null && (!m_InsuranceAward.Player || m_InsuranceAward == this))
-			{
-				m_InsuranceAward = null;
-			}
-
-			if (m_InsuranceAward is PlayerMobile)
-			{
-				((PlayerMobile)m_InsuranceAward).m_InsuranceBonus = 0;
-			}
-
-			if (m_ReceivedHonorContext != null)
-			{
-				m_ReceivedHonorContext.OnTargetKilled();
-			}
-			if (m_SentHonorContext != null)
-			{
-				m_SentHonorContext.OnSourceKilled();
-			}
-
-			RecoverAmmo();
-
-			return base.OnBeforeDeath();
-		}
-
-		private bool CheckInsuranceOnDeath(Item item)
-		{
-            if (Young) { return false; }
-
-			if (InsuranceEnabled && item.Insured)
-			{
-				if (XmlPoints.InsuranceIsFree(this, m_InsuranceAward))
-				{
-					item.PayedInsurance = true;
-					return true;
+					if ( insure[i] )
+						cost += GetInsuranceCost( items[i] );
 				}
 
-				#region Dueling
-				if (m_DuelPlayer != null && m_DuelContext != null && m_DuelContext.Registered && m_DuelContext.Started &&
-					!m_DuelPlayer.Eliminated)
+				AddHtmlLocalized( 15, 420, 300, 20, 1114310, 0x7FFF, false, false ); // GOLD AVAILABLE:
+				AddLabel( 215, 420, 0x481, balance.ToString() );
+				AddHtmlLocalized( 15, 435, 300, 20, 1114123, 0x7FFF, false, false ); // TOTAL COST OF INSURANCE:
+				AddLabel( 215, 435, 0x481, cost.ToString() );
+
+				if ( cost != 0 )
 				{
-					return true;
+					AddHtmlLocalized( 15, 450, 300, 20, 1114125, 0x7FFF, false, false ); // NUMBER OF DEATHS PAYABLE:
+					AddLabel( 215, 450, 0x481, ( balance / cost ).ToString() );
 				}
-				#endregion
 
-				if (AutoRenewInsurance)
+				for ( int i = page * 4, y = 72; i < ( page + 1 ) * 4 && i < items.Length; ++i, y += 75 )
 				{
-					int cost = (m_InsuranceAward == null ? 600 : 300);
+					Item item = items[i];
+					Rectangle2D b = ItemBounds.Table[item.ItemID];
 
-					if (Banker.Withdraw(this, cost))
+					AddImageTiledButton( 40, y, 0x918, 0x918, 0, GumpButtonType.Page, 0, item.ItemID, item.Hue, 40 - b.Width / 2 - b.X, 30 - b.Height / 2 - b.Y );
+					AddItemProperty( item.Serial );
+
+					if ( insure[i] )
 					{
-						m_InsuranceCost += cost;
-						item.PayedInsurance = true;
-						SendLocalizedMessage(1060398, cost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+						AddButton( 400, y, 9723, 9724, 100 + i, GumpButtonType.Reply, 0 );
+						AddLabel( 250, y, 0x481, GetInsuranceCost( item ).ToString() );
 					}
 					else
 					{
-						SendLocalizedMessage(1061079, "", 0x23); // You lack the funds to purchase the insurance
-						item.PayedInsurance = false;
-						item.Insured = false;
-						m_NonAutoreinsuredItems++;
+						AddButton( 400, y, 9720, 9722, 100 + i, GumpButtonType.Reply, 0 );
+						AddLabel( 250, y, 0x66C, GetInsuranceCost( item ).ToString() );
+					}
+				}
+
+				if ( page >= 1 )
+				{
+					AddButton( 15, 380, 0xFAE, 0xFAF, 3, GumpButtonType.Reply, 0 );
+					AddHtmlLocalized( 50, 380, 450, 20, 1044044, 0x7FFF, false, false ); // PREV PAGE
+				}
+
+				if ( ( page + 1 ) * 4 < items.Length )
+				{
+					AddButton( 400, 380, 0xFA5, 0xFA7, 4, GumpButtonType.Reply, 0 );
+					AddHtmlLocalized( 435, 380, 70, 20, 1044045, 0x7FFF, false, false ); // NEXT PAGE
+				}
+			}
+
+			public ItemInsuranceMenuGump NewInstance()
+			{
+				return new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page );
+			}
+
+			public override void OnResponse( NetState sender, RelayInfo info )
+			{
+				if ( info.ButtonID == 0 || !m_From.CheckAlive() )
+					return;
+
+				switch ( info.ButtonID )
+				{
+					case 1: // Auto Reinsure
+					{
+						if ( m_From.AutoRenewInsurance )
+						{
+							if ( !m_From.HasGump( typeof( CancelRenewInventoryInsuranceGump ) ) )
+								m_From.SendGump( new CancelRenewInventoryInsuranceGump( m_From, this ) );
+						}
+						else
+						{
+							m_From.AutoRenewInventoryInsurance();
+							m_From.SendGump( new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page ) );
+						}
+
+						break;
+					}
+					case 2: // OK
+					{
+						m_From.SendGump( new ItemInsuranceMenuConfirmGump( m_From, m_Items, m_Insure, m_Page ) );
+
+						break;
+					}
+					case 3: // Prev
+					{
+						if ( m_Page >= 1 )
+							m_From.SendGump( new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page - 1 ) );
+
+						break;
+					}
+					case 4: // Next
+					{
+						if ( ( m_Page + 1 ) * 4 < m_Items.Length )
+							m_From.SendGump( new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page + 1 ) );
+
+						break;
+					}
+					default:
+					{
+						int idx = info.ButtonID - 100;
+
+						if ( idx >= 0 && idx < m_Items.Length )
+							m_Insure[idx] = !m_Insure[idx];
+
+						m_From.SendGump( new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page ) );
+
+						break;
+					}
+				}
+			}
+		}
+
+		private class ItemInsuranceMenuConfirmGump : Gump
+		{
+			private PlayerMobile m_From;
+			private Item[] m_Items;
+			private bool[] m_Insure;
+			private int m_Page;
+
+			public ItemInsuranceMenuConfirmGump( PlayerMobile from, Item[] items, bool[] insure, int page )
+				: base( 250, 200 )
+			{
+				m_From = from;
+				m_Items = items;
+				m_Insure = insure;
+				m_Page = page;
+
+				AddBackground( 0, 0, 240, 142, 0x13BE );
+				AddImageTiled( 6, 6, 228, 100, 0xA40 );
+				AddImageTiled( 6, 116, 228, 20, 0xA40 );
+				AddAlphaRegion( 6, 6, 228, 142 );
+
+				AddHtmlLocalized( 8, 8, 228, 100, 1114300, 0x7FFF, false, false ); // Do you wish to insure all newly selected items?
+
+				AddButton( 6, 116, 0xFB1, 0xFB2, 0, GumpButtonType.Reply, 0 );
+				AddHtmlLocalized( 40, 118, 450, 20, 1060051, 0x7FFF, false, false ); // CANCEL
+
+				AddButton( 114, 116, 0xFA5, 0xFA7, 1, GumpButtonType.Reply, 0 );
+				AddHtmlLocalized( 148, 118, 450, 20, 1073996, 0x7FFF, false, false ); // ACCEPT
+			}
+
+			public override void OnResponse( NetState sender, RelayInfo info )
+			{
+				if ( !m_From.CheckAlive() )
+					return;
+
+				if ( info.ButtonID == 1 )
+				{
+					for ( int i = 0; i < m_Items.Length; ++i )
+					{
+						Item item = m_Items[i];
+
+						if ( item.Insured != m_Insure[i] )
+							m_From.ToggleItemInsurance_Callback( m_From, item, false );
 					}
 				}
 				else
 				{
-					item.PayedInsurance = false;
-					item.Insured = false;
+					m_From.SendLocalizedMessage( 1042021 ); // Cancelled.
+					m_From.SendGump( new ItemInsuranceMenuGump( m_From, m_Items, m_Insure, m_Page ) );
 				}
-
-				if (m_InsuranceAward != null)
-				{
-					if (Banker.Deposit(m_InsuranceAward, 300))
-					{
-						if (m_InsuranceAward is PlayerMobile)
-						{
-							((PlayerMobile)m_InsuranceAward).m_InsuranceBonus += 300;
-						}
-					}
-				}
-
-				return true;
-			}
-
-			return false;
-		}
-
-		public override DeathMoveResult GetParentMoveResultFor(Item item)
-		{
-			if (CheckInsuranceOnDeath(item) && !Young)
-			{
-				return DeathMoveResult.MoveToBackpack;
-			}
-
-			DeathMoveResult res = base.GetParentMoveResultFor(item);
-
-			if (res == DeathMoveResult.MoveToCorpse && item.Movable && Young)
-			{
-				res = DeathMoveResult.MoveToBackpack;
-			}
-
-			return res;
-		}
-
-		public override DeathMoveResult GetInventoryMoveResultFor(Item item)
-		{
-			if (CheckInsuranceOnDeath(item) && !Young)
-			{
-				return DeathMoveResult.MoveToBackpack;
-			}
-
-			DeathMoveResult res = base.GetInventoryMoveResultFor(item);
-
-			if (res == DeathMoveResult.MoveToCorpse && item.Movable && Young)
-			{
-				res = DeathMoveResult.MoveToBackpack;
-			}
-
-			return res;
-		}
-
-		public override void OnDeath(Container c)
-		{
-			if (m_NonAutoreinsuredItems > 0)
-			{
-				SendLocalizedMessage(1061115);
-			}
-
-			base.OnDeath(c);
-
-			m_EquipSnapshot = null;
-
-			HueMod = -1;
-			NameMod = null;
-			SavagePaintExpiration = TimeSpan.Zero;
-
-			SetHairMods(-1, -1);
-
-			PolymorphSpell.StopTimer(this);
-			IncognitoSpell.StopTimer(this);
-			DisguiseTimers.RemoveTimer(this);
-
-			EndAction(typeof(PolymorphSpell));
-			EndAction(typeof(IncognitoSpell));
-
-			MeerMage.StopEffect(this, false);
-
-			#region Stygian Abyss
-			if (Flying)
-			{
-				Flying = false;
-				BuffInfo.RemoveBuff(this, BuffIcon.Fly);
-			}
-			#endregion
-
-			StolenItem.ReturnOnDeath(this, c);
-
-			if (m_PermaFlags.Count > 0)
-			{
-				m_PermaFlags.Clear();
-
-				if (c is Corpse)
-				{
-					((Corpse)c).Criminal = true;
-				}
-
-				if (Stealing.ClassicMode)
-				{
-					Criminal = true;
-				}
-			}
-
-			if (Kills >= 5 && DateTime.UtcNow >= m_NextJustAward)
-			{
-				Mobile m = FindMostRecentDamager(false);
-
-				if (m is BaseCreature)
-				{
-					m = ((BaseCreature)m).GetMaster();
-				}
-
-				if (m != null && m is PlayerMobile && m != this)
-				{
-					bool gainedPath = false;
-
-					int pointsToGain = 0;
-
-					pointsToGain += (int)Math.Sqrt(GameTime.TotalSeconds * 4);
-					pointsToGain *= 5;
-					pointsToGain += (int)Math.Pow(Skills.Total / 250, 2);
-
-					if (VirtueHelper.Award(m, VirtueName.Justice, pointsToGain, ref gainedPath))
-					{
-						if (gainedPath)
-						{
-							m.SendLocalizedMessage(1049367); // You have gained a path in Justice!
-						}
-						else
-						{
-							m.SendLocalizedMessage(1049363); // You have gained in Justice.
-						}
-
-						m.FixedParticles(0x375A, 9, 20, 5027, EffectLayer.Waist);
-						m.PlaySound(0x1F7);
-
-						m_NextJustAward = DateTime.UtcNow + TimeSpan.FromMinutes(pointsToGain / 3);
-					}
-				}
-			}
-
-			if (m_InsuranceAward is PlayerMobile)
-			{
-				PlayerMobile pm = (PlayerMobile)m_InsuranceAward;
-
-				if (pm.m_InsuranceBonus > 0)
-				{
-					pm.SendLocalizedMessage(1060397, pm.m_InsuranceBonus.ToString());
-					// ~1_AMOUNT~ gold has been deposited into your bank box.
-				}
-			}
-
-			Mobile killer = FindMostRecentDamager(true);
-
-			#region QueensLoyaltySystem
-			if (killer is PlayerMobile)
-			{
-				m_Exp -= (m_LevelExp / 100);
-				if (m_Exp < 0)
-				{
-					if (m_Level == 0)
-					{
-						m_Exp = 0;
-					}
-					else
-					{
-						m_Exp += (long)(m_LevelExp / 1.4);
-						m_Level -= 1;
-						SendMessage("Due to your death you have lost a level of Loyalty to the Queen");
-					}
-				}
-			}
-			else
-			{
-				m_Exp -= (m_LevelExp / 50);
-				if (m_Exp < 0)
-				{
-					if (m_Level == 0)
-					{
-						Exp = 0;
-					}
-					else
-					{
-						m_Exp += (long)(m_LevelExp / 1.4);
-						m_Level -= 1;
-						SendMessage("Due to your death you have lost a level of Loyalty to the Queen");
-					}
-				}
-			}
-			#endregion                          // End Queen's Loyalty System
-
-			if (killer is BaseCreature)
-			{
-				BaseCreature bc = (BaseCreature)killer;
-
-				Mobile master = bc.GetMaster();
-				if (master != null)
-				{
-					killer = master;
-				}
-			}
-
-			if (Young && m_DuelContext == null)
-			{
-				if (YoungDeathTeleport())
-				{
-					Timer.DelayCall(TimeSpan.FromSeconds(2.5), SendYoungDeathNotice);
-				}
-			}
-
-			if (m_DuelContext == null || !m_DuelContext.Registered || !m_DuelContext.Started || m_DuelPlayer == null ||
-				m_DuelPlayer.Eliminated || !XmlPoints.AreChallengers(this, killer))
-			{
-				Faction.HandleDeath(this, killer);
-			}
-
-			Guilds.Guild.HandleDeath(this, killer);
-
-			#region Dueling
-			if (m_DuelContext != null)
-			{
-				m_DuelContext.OnDeath(this, c);
-			}
-			#endregion
-
-			if (m_BuffTable != null)
-			{
-				var list = new List<BuffInfo>();
-
-				foreach (BuffInfo buff in m_BuffTable.Values)
-				{
-					if (!buff.RetainThroughDeath)
-					{
-						list.Add(buff);
-					}
-				}
-
-				for (int i = 0; i < list.Count; i++)
-				{
-					RemoveBuff(list[i]);
-				}
-			}
-
-			#region Stygian Abyss
-			if (Region.IsPartOf("Abyss") && SSSeedExpire > DateTime.UtcNow)
-			{
-				SendGump(new ResurrectGump(this, ResurrectMessage.SilverSapling));
-			}
-			#endregion
-		}
-
-		private List<Mobile> m_PermaFlags;
-		private readonly List<Mobile> m_VisList;
-		private readonly Hashtable m_AntiMacroTable;
-		private TimeSpan m_GameTime;
-		private TimeSpan m_ShortTermElapse;
-		private TimeSpan m_LongTermElapse;
-		private DateTime m_SessionStart;
-		private DateTime m_NextSmithBulkOrder;
-		private DateTime m_NextTailorBulkOrder;
-		private DateTime m_SavagePaintExpiration;
-		private SkillName m_Learning = (SkillName)(-1);
-
-		public SkillName Learning { get { return m_Learning; } set { m_Learning = value; } }
-
-		[CommandProperty(AccessLevel.GameMaster)]
-		public TimeSpan SavagePaintExpiration
-		{
-			get
-			{
-				TimeSpan ts = m_SavagePaintExpiration - DateTime.UtcNow;
-
-				if (ts < TimeSpan.Zero)
-				{
-					ts = TimeSpan.Zero;
-				}
-
-				return ts;
-			}
-			set { m_SavagePaintExpiration = DateTime.UtcNow + value; }
-		}
-
-		[CommandProperty(AccessLevel.GameMaster)]
-		public TimeSpan NextSmithBulkOrder
-		{
-			get
-			{
-				TimeSpan ts = m_NextSmithBulkOrder - DateTime.UtcNow;
-
-				if (ts < TimeSpan.Zero)
-				{
-					ts = TimeSpan.Zero;
-				}
-
-				return ts;
-			}
-			set
-			{
-				try
-				{
-					m_NextSmithBulkOrder = DateTime.UtcNow + value;
-				}
-				catch
-				{ }
 			}
 		}
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public TimeSpan NextTailorBulkOrder
-		{
-			get
-			{
-				TimeSpan ts = m_NextTailorBulkOrder - DateTime.UtcNow;
+		
+        #endregion
+        #endregion
+        #region Insurance and Trades
+        private void ToggleTrades()
+        {
+            RefuseTrades = !RefuseTrades;
+        } 
+        #endregion
+        private void GetVendor()
+        {
+            BaseHouse house = BaseHouse.FindHouseAt(this);
 
-				if (ts < TimeSpan.Zero)
-				{
-					ts = TimeSpan.Zero;
-				}
+            if (CheckAlive() && house != null && house.IsOwner(this) && house.InternalizedVendors.Count > 0)
+            {
+                CloseGump(typeof(ReclaimVendorGump));
+                SendGump(new ReclaimVendorGump(house));
+            }
+        }
 
-				return ts;
-			}
-			set
-			{
-				try
-				{
-					m_NextTailorBulkOrder = DateTime.UtcNow + value;
-				}
-				catch
-				{ }
-			}
-		}
+        private void LeaveHouse()
+        {
+            BaseHouse house = BaseHouse.FindHouseAt(this);
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public DateTime LastEscortTime { get; set; }
+            if (house != null)
+            {
+                Location = house.BanLocation;
+            }
+        }
 
-		[CommandProperty(AccessLevel.GameMaster)]
-		public DateTime LastPetBallTime { get; set; }
+        private delegate void ContextCallback();
 
-		public PlayerMobile()
-		{
-			m_AutoStabled = new List<Mobile>();
+        private class CallbackEntry : ContextMenuEntry
+        {
+            private readonly ContextCallback m_Callback;
 
-			#region Mondain's Legacy
-			m_Quests = new List<BaseQuest>();
-			m_Chains = new Dictionary<QuestChain, BaseChain>();
-			m_DoneQuests = new List<QuestRestartInfo>();
-			m_Collections = new Dictionary<Collection, int>();
-			m_CollectionTitles = new List<object>();
+            public CallbackEntry(int number, ContextCallback callback)
+                : this(number, -1, callback)
+            { }
 
-			m_PeacedUntil = DateTime.UtcNow;
-			#endregion
+            public CallbackEntry(int number, int range, ContextCallback callback)
+                : base(number, range)
+            {
+                m_Callback = callback;
+            }
 
-			m_VisList = new List<Mobile>();
-			m_PermaFlags = new List<Mobile>();
-			m_AntiMacroTable = new Hashtable();
-			m_RecentlyReported = new List<Mobile>();
+            public override void OnClick()
+            {
+                if (m_Callback != null)
+                {
+                    m_Callback();
+                }
+            }
+        }
 
-			m_BOBFilter = new BOBFilter();
+        public override void DisruptiveAction()
+        {
+            if (Meditating)
+            {
+                RemoveBuff(BuffIcon.ActiveMeditation);
+            }
 
-			m_GameTime = TimeSpan.Zero;
-			m_ShortTermElapse = TimeSpan.FromHours(8.0);
-			m_LongTermElapse = TimeSpan.FromHours(40.0);
+            base.DisruptiveAction();
+        }
 
-			m_JusticeProtectors = new List<Mobile>();
-			m_GuildRank = RankDefinition.Lowest;
+        public override void OnDoubleClick(Mobile from)
+        {
+            if (this == from && !Warmode)
+            {
+                IMount mount = Mount;
 
-			m_ChampionTitles = new ChampionTitleInfo();
+                if (mount != null && !DesignContext.Check(this))
+                {
+                    return;
+                }
+            }
 
-			InvalidateMyRunUO();
-		}
+            base.OnDoubleClick(from);
+        }
 
-		public override bool MutateSpeech(List<Mobile> hears, ref string text, ref object context)
-		{
-			if (Alive)
-			{
-				return false;
-			}
+        public override void DisplayPaperdollTo(Mobile to)
+        {
+            if (DesignContext.Check(this))
+            {
+                base.DisplayPaperdollTo(to);
+            }
+        }
 
-			if (Core.ML && Skills[SkillName.SpiritSpeak].Value >= 100.0)
-			{
-				return false;
-			}
+        private static bool m_NoRecursion;
 
-			if (Core.AOS)
-			{
-				for (int i = 0; i < hears.Count; ++i)
-				{
-					Mobile m = hears[i];
+        public override bool CheckEquip(Item item)
+        {
+            if (!base.CheckEquip(item))
+            {
+                return false;
+            }
 
-					if (m != this && m.Skills[SkillName.SpiritSpeak].Value >= 100.0)
-					{
-						return false;
-					}
-				}
-			}
+            #region Dueling
+            if (m_DuelContext != null && !m_DuelContext.AllowItemEquip(this, item))
+            {
+                return false;
+            }
+            #endregion
 
-			return base.MutateSpeech(hears, ref text, ref context);
-		}
+            #region Factions
+            FactionItem factionItem = FactionItem.Find(item);
 
-		public override void DoSpeech(string text, int[] keywords, MessageType type, int hue)
-		{
-			if (Guilds.Guild.NewGuildSystem && (type == MessageType.Guild || type == MessageType.Alliance))
-			{
-				Guild g = Guild as Guild;
-				if (g == null)
-				{
-					SendLocalizedMessage(1063142); // You are not in a guild!
-				}
-				else if (type == MessageType.Alliance)
-				{
-					if (g.Alliance != null && g.Alliance.IsMember(g))
-					{
-						//g.Alliance.AllianceTextMessage( hue, "[Alliance][{0}]: {1}", this.Name, text );
-						g.Alliance.AllianceChat(this, text);
-						SendToStaffMessage(this, "[Alliance]: {0}", text);
+            if (factionItem != null)
+            {
+                Faction faction = Faction.Find(this);
 
-						m_AllianceMessageHue = hue;
-					}
-					else
-					{
-						SendLocalizedMessage(1071020); // You are not in an alliance!
-					}
-				}
-				else //Type == MessageType.Guild
-				{
-					m_GuildMessageHue = hue;
+                if (faction == null)
+                {
+                    SendLocalizedMessage(1010371); // You cannot equip a faction item!
+                    return false;
+                }
+                else if (faction != factionItem.Faction)
+                {
+                    SendLocalizedMessage(1010372); // You cannot equip an opposing faction's item!
+                    return false;
+                }
+                else
+                {
+                    int maxWearables = FactionItem.GetMaxWearables(this);
 
-					g.GuildChat(this, text);
-					SendToStaffMessage(this, "[Guild]: {0}", text);
-				}
-			}
-			else
-			{
-				base.DoSpeech(text, keywords, type, hue);
-			}
-		}
+                    for (int i = 0; i < Items.Count; ++i)
+                    {
+                        Item equiped = Items[i];
 
-		private static void SendToStaffMessage(Mobile from, string text)
-		{
-			Packet p = null;
+                        if (item != equiped && FactionItem.Find(equiped) != null)
+                        {
+                            if (--maxWearables == 0)
+                            {
+                                SendLocalizedMessage(1010373); // You do not have enough rank to equip more faction items!
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            #endregion
 
-			foreach (NetState ns in from.GetClientsInRange(8))
-			{
-				Mobile mob = ns.Mobile;
+            if (AccessLevel < AccessLevel.GameMaster && item.Layer != Layer.Mount && HasTrade)
+            {
+                BounceInfo bounce = item.GetBounce();
 
-				if (mob != null && mob.AccessLevel >= AccessLevel.GameMaster && mob.AccessLevel > from.AccessLevel)
-				{
-					if (p == null)
-					{
-						p =
-							Packet.Acquire(
-								new UnicodeMessage(
-									from.Serial, from.Body, MessageType.Regular, from.SpeechHue, 3, from.Language, from.Name, text));
-					}
+                if (bounce != null)
+                {
+                    if (bounce.m_Parent is Item)
+                    {
+                        Item parent = (Item)bounce.m_Parent;
 
-					ns.Send(p);
-				}
-			}
+                        if (parent == Backpack || parent.IsChildOf(Backpack))
+                        {
+                            return true;
+                        }
+                    }
+                    else if (bounce.m_Parent == this)
+                    {
+                        return true;
+                    }
+                }
 
-			Packet.Release(p);
-		}
+                SendLocalizedMessage(1004042); // You can only equip what you are already carrying while you have a trade pending.
+                return false;
+            }
 
-		private static void SendToStaffMessage(Mobile from, string format, params object[] args)
-		{
-			SendToStaffMessage(from, String.Format(format, args));
-		}
+            return true;
+        }
 
-		public override void Damage(int amount, Mobile from)
-		{
-			if (EvilOmenSpell.TryEndEffect(this))
-			{
-				amount = (int)(amount * 1.25);
-			}
+        public override bool CheckTrade(
+            Mobile to, Item item, SecureTradeContainer cont, bool message, bool checkItems, int plusItems, int plusWeight)
+        {
+            int msgNum = 0;
 
-			Mobile oath = BloodOathSpell.GetBloodOath(from);
+            if (cont == null)
+            {
+                if (to.Holding != null)
+                {
+                    msgNum = 1062727; // You cannot trade with someone who is dragging something.
+                }
+                else if (HasTrade)
+                {
+                    msgNum = 1062781; // You are already trading with someone else!
+                }
+                else if (to.HasTrade)
+                {
+                    msgNum = 1062779; // That person is already involved in a trade
+                }
+                #region Insurance and Trades
+                else if (to is PlayerMobile && ((PlayerMobile)to).RefuseTrades)
+                {
+                    msgNum = 1154111; // ~1_NAME~ is refusing all trades. 
+                }
+                #endregion
+            }
 
-			/* Per EA's UO Herald Pub48 (ML):
-			* ((resist spellsx10)/20 + 10=percentage of damage resisted)
-			*/
+            if (msgNum == 0)
+            {
+                if (cont != null)
+                {
+                    plusItems += cont.TotalItems;
+                    plusWeight += cont.TotalWeight;
+                }
+
+                if (Backpack == null || !Backpack.CheckHold(this, item, false, checkItems, plusItems, plusWeight))
+                {
+                    msgNum = 1004040; // You would not be able to hold this if the trade failed.
+                }
+                else if (to.Backpack == null || !to.Backpack.CheckHold(to, item, false, checkItems, plusItems, plusWeight))
+                {
+                    msgNum = 1004039; // The recipient of this trade would not be able to carry this.
+                }
+                else
+                {
+                    msgNum = CheckContentForTrade(item);
+                }
+            }
+
+            if (msgNum != 0)
+            {
+                if (message)
+                {
+                    #region Insurance and Trades
+                    //SendLocalizedMessage(msgNum);
+                   
+                        if (msgNum == 1154111)
+                            SendLocalizedMessage(msgNum, to.Name);
+                        else
+                            SendLocalizedMessage(msgNum);
+                    } 
+                    #endregion
+                
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private static int CheckContentForTrade(Item item)
+        {
+            if (item is TrapableContainer && ((TrapableContainer)item).TrapType != TrapType.None)
+            {
+                return 1004044; // You may not trade trapped items.
+            }
+
+            if (StolenItem.IsStolen(item))
+            {
+                return 1004043; // You may not trade recently stolen items.
+            }
+
+            if (item is Container)
+            {
+                foreach (Item subItem in item.Items)
+                {
+                    int msg = CheckContentForTrade(subItem);
+
+                    if (msg != 0)
+                    {
+                        return msg;
+                    }
+                }
+            }
+
+            return 0;
+        }
+
+        public override bool CheckNonlocalDrop(Mobile from, Item item, Item target)
+        {
+            if (!base.CheckNonlocalDrop(from, item, target))
+            {
+                return false;
+            }
+
+            if (from.AccessLevel >= AccessLevel.GameMaster)
+            {
+                return true;
+            }
+
+            Container pack = Backpack;
+            if (from == this && HasTrade && (target == pack || target.IsChildOf(pack)))
+            {
+                BounceInfo bounce = item.GetBounce();
+
+                if (bounce != null && bounce.m_Parent is Item)
+                {
+                    Item parent = (Item)bounce.m_Parent;
+
+                    if (parent == pack || parent.IsChildOf(pack))
+                    {
+                        return true;
+                    }
+                }
+
+                SendLocalizedMessage(1004041); // You can't do that while you have a trade pending.
+                return false;
+            }
+
+            return true;
+        }
+
+        protected override void OnLocationChange(Point3D oldLocation)
+        {
+            CheckLightLevels(false);
+
+            #region Dueling
+            if (m_DuelContext != null)
+            {
+                m_DuelContext.OnLocationChanged(this);
+            }
+            #endregion
+
+            DesignContext context = m_DesignContext;
+
+            if (context == null || m_NoRecursion)
+            {
+                return;
+            }
+
+            m_NoRecursion = true;
+
+            HouseFoundation foundation = context.Foundation;
+
+            int newX = X, newY = Y;
+            int newZ = foundation.Z + HouseFoundation.GetLevelZ(context.Level, context.Foundation);
+
+            int startX = foundation.X + foundation.Components.Min.X + 1;
+            int startY = foundation.Y + foundation.Components.Min.Y + 1;
+            int endX = startX + foundation.Components.Width - 1;
+            int endY = startY + foundation.Components.Height - 2;
+
+            if (newX >= startX && newY >= startY && newX < endX && newY < endY && Map == foundation.Map)
+            {
+                if (Z != newZ)
+                {
+                    Location = new Point3D(X, Y, newZ);
+                }
+
+                m_NoRecursion = false;
+                return;
+            }
+
+            Location = new Point3D(foundation.X, foundation.Y, newZ);
+            Map = foundation.Map;
+
+            m_NoRecursion = false;
+        }
+
+        public override bool OnMoveOver(Mobile m)
+        {
+            if (m is BaseCreature && !((BaseCreature)m).Controlled)
+            {
+                return (!Alive || !m.Alive || IsDeadBondedPet || m.IsDeadBondedPet) || (Hidden && IsStaff());
+            }
+
+            #region Dueling
+            if (Region.IsPartOf(typeof(SafeZone)) && m is PlayerMobile)
+            {
+                PlayerMobile pm = (PlayerMobile)m;
+
+                if (pm.DuelContext == null || pm.DuelPlayer == null || !pm.DuelContext.Started || pm.DuelContext.Finished ||
+                    pm.DuelPlayer.Eliminated)
+                {
+                    return true;
+                }
+            }
+            #endregion
+
+            return base.OnMoveOver(m);
+        }
+
+        public override bool CheckShove(Mobile shoved)
+        {
+            if (TransformationSpellHelper.UnderTransformation(shoved, typeof(WraithFormSpell)))
+            {
+                return true;
+            }
+            else
+            {
+                return base.CheckShove(shoved);
+            }
+        }
+
+        protected override void OnMapChange(Map oldMap)
+        {
+            if ((Map != Faction.Facet && oldMap == Faction.Facet) || (Map == Faction.Facet && oldMap != Faction.Facet))
+            {
+                InvalidateProperties();
+            }
+
+            #region Dueling
+            if (m_DuelContext != null)
+            {
+                m_DuelContext.OnMapChanged(this);
+            }
+            #endregion
+
+            DesignContext context = m_DesignContext;
+
+            if (context == null || m_NoRecursion)
+            {
+                return;
+            }
+
+            m_NoRecursion = true;
+
+            HouseFoundation foundation = context.Foundation;
+
+            if (Map != foundation.Map)
+            {
+                Map = foundation.Map;
+            }
+
+            m_NoRecursion = false;
+        }
+
+        public override void OnBeneficialAction(Mobile target, bool isCriminal)
+        {
+            if (m_SentHonorContext != null)
+            {
+                m_SentHonorContext.OnSourceBeneficialAction(target);
+            }
+
+            base.OnBeneficialAction(target, isCriminal);
+        }
+
+        public override void OnDamage(int amount, Mobile from, bool willKill)
+        {
+            int disruptThreshold;
+
+            if (!Core.AOS)
+            {
+                disruptThreshold = 0;
+            }
+            else if (from != null && from.Player)
+            {
+                disruptThreshold = 18;
+            }
+            else
+            {
+                disruptThreshold = 25;
+            }
+
+            if (amount > disruptThreshold)
+            {
+                BandageContext c = BandageContext.GetContext(this);
+
+                if (c != null)
+                {
+                    c.Slip();
+                }
+            }
+
+            if (Confidence.IsRegenerating(this))
+            {
+                Confidence.StopRegenerating(this);
+            }
+
+            WeightOverloading.FatigueOnDamage(this, amount);
+
+            if (m_ReceivedHonorContext != null)
+            {
+                m_ReceivedHonorContext.OnTargetDamaged(from, amount);
+            }
+            if (m_SentHonorContext != null)
+            {
+                m_SentHonorContext.OnSourceDamaged(from, amount);
+            }
+
+            if (willKill && from is PlayerMobile)
+            {
+                Timer.DelayCall(TimeSpan.FromSeconds(10), ((PlayerMobile)@from).RecoverAmmo);
+            }
+
+            #region Mondain's Legacy
+            if (InvisibilityPotion.HasTimer(this))
+            {
+                InvisibilityPotion.Iterrupt(this);
+            }
+            #endregion
+
+            base.OnDamage(amount, from, willKill);
+        }
+
+        public override void Resurrect()
+        {
+            bool wasAlive = Alive;
+
+            base.Resurrect();
+
+            if (Alive && !wasAlive)
+            {
+                Item deathRobe = new DeathRobe();
+
+                if (!EquipItem(deathRobe))
+                {
+                    deathRobe.Delete();
+                }
+
+                #region Scroll of Alacrity
+                if (AcceleratedStart > DateTime.UtcNow)
+                {
+                    BuffInfo.AddBuff(this, new BuffInfo(BuffIcon.ArcaneEmpowerment, 1078511, 1078512, AcceleratedSkill.ToString()));
+                }
+                #endregion
+            }
+        }
+
+        public override double RacialSkillBonus
+        {
+            get
+            {
+                if (Core.ML && Race == Race.Human)
+                {
+                    return 20.0;
+                }
+
+                return 0;
+            }
+        }
+
+        public override void OnWarmodeChanged()
+        {
+            if (!Warmode)
+            {
+                Timer.DelayCall(TimeSpan.FromSeconds(10), RecoverAmmo);
+            }
+        }
+
+        private Mobile m_InsuranceAward;
+        private int m_InsuranceCost;
+        private int m_InsuranceBonus;
+
+        private List<Item> m_EquipSnapshot;
+
+        public List<Item> EquipSnapshot { get { return m_EquipSnapshot; } }
+
+        private bool FindItems_Callback(Item item)
+        {
+            if (!item.Deleted && (item.LootType == LootType.Blessed || item.Insured))
+            {
+                if (Backpack != item.ParentEntity)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public override bool OnBeforeDeath()
+        {
+            NetState state = NetState;
+
+            if (state != null)
+            {
+                state.CancelAllTrades();
+            }
+
+            DropHolding();
+
+            if (Core.AOS && Backpack != null && !Backpack.Deleted)
+            {
+                var ilist = Backpack.FindItemsByType<Item>(FindItems_Callback);
+
+                for (int i = 0; i < ilist.Count; i++)
+                {
+                    Backpack.AddItem(ilist[i]);
+                }
+            }
+
+            m_EquipSnapshot = new List<Item>(Items);
+
+            m_NonAutoreinsuredItems = 0;
+            m_InsuranceCost = 0;
+            m_InsuranceAward = base.FindMostRecentDamager(false);
+
+            if (m_InsuranceAward is BaseCreature)
+            {
+                Mobile master = ((BaseCreature)m_InsuranceAward).GetMaster();
+
+                if (master != null)
+                {
+                    m_InsuranceAward = master;
+                }
+            }
+
+            if (m_InsuranceAward != null && (!m_InsuranceAward.Player || m_InsuranceAward == this))
+            {
+                m_InsuranceAward = null;
+            }
+
+            if (m_InsuranceAward is PlayerMobile)
+            {
+                ((PlayerMobile)m_InsuranceAward).m_InsuranceBonus = 0;
+            }
+
+            if (m_ReceivedHonorContext != null)
+            {
+                m_ReceivedHonorContext.OnTargetKilled();
+            }
+            if (m_SentHonorContext != null)
+            {
+                m_SentHonorContext.OnSourceKilled();
+            }
+
+            RecoverAmmo();
+
+            return base.OnBeforeDeath();
+        }
+
+        private bool CheckInsuranceOnDeath(Item item)
+        {
+            if (Young) { return false; }
+
+            if (InsuranceEnabled && item.Insured)
+            {
+                if (XmlPoints.InsuranceIsFree(this, m_InsuranceAward))
+                {
+                    item.PayedInsurance = true;
+                    return true;
+                }
+
+                #region Dueling
+                if (m_DuelPlayer != null && m_DuelContext != null && m_DuelContext.Registered && m_DuelContext.Started &&
+                    !m_DuelPlayer.Eliminated)
+                {
+                    return true;
+                }
+                #endregion
+
+                if (AutoRenewInsurance)
+                {
+                    #region Insurance and Trades
+		//int cost = ( m_InsuranceAward == null ? 600 : 300 );
+						int cost = GetInsuranceCost( item );
+	
+						if ( m_InsuranceAward != null )
+							cost /= 2; 
+	#endregion
+
+                    if (Banker.Withdraw(this, cost))
+                    {
+                        m_InsuranceCost += cost;
+                        item.PayedInsurance = true;
+                        SendLocalizedMessage(1060398, cost.ToString()); // ~1_AMOUNT~ gold has been withdrawn from your bank box.
+                    }
+                    else
+                    {
+                        SendLocalizedMessage(1061079, "", 0x23); // You lack the funds to purchase the insurance
+                        item.PayedInsurance = false;
+                        item.Insured = false;
+                        m_NonAutoreinsuredItems++;
+                    }
+                }
+                else
+                {
+                    item.PayedInsurance = false;
+                    item.Insured = false;
+                }
+
+                if (m_InsuranceAward != null)
+                {
+                    if (Banker.Deposit(m_InsuranceAward, 300))
+                    {
+                        if (m_InsuranceAward is PlayerMobile)
+                        {
+                            ((PlayerMobile)m_InsuranceAward).m_InsuranceBonus += 300;
+                        }
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public override DeathMoveResult GetParentMoveResultFor(Item item)
+        {
+            if (CheckInsuranceOnDeath(item) && !Young)
+            {
+                return DeathMoveResult.MoveToBackpack;
+            }
+
+            DeathMoveResult res = base.GetParentMoveResultFor(item);
+
+            if (res == DeathMoveResult.MoveToCorpse && item.Movable && Young)
+            {
+                res = DeathMoveResult.MoveToBackpack;
+            }
+
+            return res;
+        }
+
+        public override DeathMoveResult GetInventoryMoveResultFor(Item item)
+        {
+            if (CheckInsuranceOnDeath(item) && !Young)
+            {
+                return DeathMoveResult.MoveToBackpack;
+            }
+
+            DeathMoveResult res = base.GetInventoryMoveResultFor(item);
+
+            if (res == DeathMoveResult.MoveToCorpse && item.Movable && Young)
+            {
+                res = DeathMoveResult.MoveToBackpack;
+            }
+
+            return res;
+        }
+
+        public override void OnDeath(Container c)
+        {
+            if (m_NonAutoreinsuredItems > 0)
+            {
+                SendLocalizedMessage(1061115);
+            }
+
+            base.OnDeath(c);
+
+            m_EquipSnapshot = null;
+
+            HueMod = -1;
+            NameMod = null;
+            SavagePaintExpiration = TimeSpan.Zero;
+
+            SetHairMods(-1, -1);
+
+            PolymorphSpell.StopTimer(this);
+            IncognitoSpell.StopTimer(this);
+            DisguiseTimers.RemoveTimer(this);
+
+            EndAction(typeof(PolymorphSpell));
+            EndAction(typeof(IncognitoSpell));
+
+            MeerMage.StopEffect(this, false);
+
+            #region Stygian Abyss
+            if (Flying)
+            {
+                Flying = false;
+                BuffInfo.RemoveBuff(this, BuffIcon.Fly);
+            }
+            #endregion
+
+            StolenItem.ReturnOnDeath(this, c);
+
+            if (m_PermaFlags.Count > 0)
+            {
+                m_PermaFlags.Clear();
+
+                if (c is Corpse)
+                {
+                    ((Corpse)c).Criminal = true;
+                }
+
+                if (Stealing.ClassicMode)
+                {
+                    Criminal = true;
+                }
+            }
+
+            if (Kills >= 5 && DateTime.UtcNow >= m_NextJustAward)
+            {
+                Mobile m = FindMostRecentDamager(false);
+
+                if (m is BaseCreature)
+                {
+                    m = ((BaseCreature)m).GetMaster();
+                }
+
+                if (m != null && m is PlayerMobile && m != this)
+                {
+                    bool gainedPath = false;
+
+                    int pointsToGain = 0;
+
+                    pointsToGain += (int)Math.Sqrt(GameTime.TotalSeconds * 4);
+                    pointsToGain *= 5;
+                    pointsToGain += (int)Math.Pow(Skills.Total / 250, 2);
+
+                    if (VirtueHelper.Award(m, VirtueName.Justice, pointsToGain, ref gainedPath))
+                    {
+                        if (gainedPath)
+                        {
+                            m.SendLocalizedMessage(1049367); // You have gained a path in Justice!
+                        }
+                        else
+                        {
+                            m.SendLocalizedMessage(1049363); // You have gained in Justice.
+                        }
+
+                        m.FixedParticles(0x375A, 9, 20, 5027, EffectLayer.Waist);
+                        m.PlaySound(0x1F7);
+
+                        m_NextJustAward = DateTime.UtcNow + TimeSpan.FromMinutes(pointsToGain / 3);
+                    }
+                }
+            }
+
+            if (m_InsuranceAward is PlayerMobile)
+            {
+                PlayerMobile pm = (PlayerMobile)m_InsuranceAward;
+
+                if (pm.m_InsuranceBonus > 0)
+                {
+                    pm.SendLocalizedMessage(1060397, pm.m_InsuranceBonus.ToString());
+                    // ~1_AMOUNT~ gold has been deposited into your bank box.
+                }
+            }
+
+            Mobile killer = FindMostRecentDamager(true);
+
+            #region QueensLoyaltySystem
+            if (killer is PlayerMobile)
+            {
+                m_Exp -= (m_LevelExp / 100);
+                if (m_Exp < 0)
+                {
+                    if (m_Level == 0)
+                    {
+                        m_Exp = 0;
+                    }
+                    else
+                    {
+                        m_Exp += (long)(m_LevelExp / 1.4);
+                        m_Level -= 1;
+                        SendMessage("Due to your death you have lost a level of Loyalty to the Queen");
+                    }
+                }
+            }
+            else
+            {
+                m_Exp -= (m_LevelExp / 50);
+                if (m_Exp < 0)
+                {
+                    if (m_Level == 0)
+                    {
+                        Exp = 0;
+                    }
+                    else
+                    {
+                        m_Exp += (long)(m_LevelExp / 1.4);
+                        m_Level -= 1;
+                        SendMessage("Due to your death you have lost a level of Loyalty to the Queen");
+                    }
+                }
+            }
+            #endregion                          // End Queen's Loyalty System
+
+            if (killer is BaseCreature)
+            {
+                BaseCreature bc = (BaseCreature)killer;
+
+                Mobile master = bc.GetMaster();
+                if (master != null)
+                {
+                    killer = master;
+                }
+            }
+
+            if (Young && m_DuelContext == null)
+            {
+                if (YoungDeathTeleport())
+                {
+                    Timer.DelayCall(TimeSpan.FromSeconds(2.5), SendYoungDeathNotice);
+                }
+            }
+
+            if (m_DuelContext == null || !m_DuelContext.Registered || !m_DuelContext.Started || m_DuelPlayer == null ||
+                m_DuelPlayer.Eliminated || !XmlPoints.AreChallengers(this, killer))
+            {
+                Faction.HandleDeath(this, killer);
+            }
+
+            Guilds.Guild.HandleDeath(this, killer);
+
+            #region Dueling
+            if (m_DuelContext != null)
+            {
+                m_DuelContext.OnDeath(this, c);
+            }
+            #endregion
+
+            if (m_BuffTable != null)
+            {
+                var list = new List<BuffInfo>();
+
+                foreach (BuffInfo buff in m_BuffTable.Values)
+                {
+                    if (!buff.RetainThroughDeath)
+                    {
+                        list.Add(buff);
+                    }
+                }
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    RemoveBuff(list[i]);
+                }
+            }
+
+            #region Stygian Abyss
+            if (Region.IsPartOf("Abyss") && SSSeedExpire > DateTime.UtcNow)
+            {
+                SendGump(new ResurrectGump(this, ResurrectMessage.SilverSapling));
+            }
+            #endregion
+        }
+
+        private List<Mobile> m_PermaFlags;
+        private readonly List<Mobile> m_VisList;
+        private readonly Hashtable m_AntiMacroTable;
+        private TimeSpan m_GameTime;
+        private TimeSpan m_ShortTermElapse;
+        private TimeSpan m_LongTermElapse;
+        private DateTime m_SessionStart;
+        private DateTime m_NextSmithBulkOrder;
+        private DateTime m_NextTailorBulkOrder;
+        private DateTime m_SavagePaintExpiration;
+        private SkillName m_Learning = (SkillName)(-1);
+
+        public SkillName Learning { get { return m_Learning; } set { m_Learning = value; } }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan SavagePaintExpiration
+        {
+            get
+            {
+                TimeSpan ts = m_SavagePaintExpiration - DateTime.UtcNow;
+
+                if (ts < TimeSpan.Zero)
+                {
+                    ts = TimeSpan.Zero;
+                }
+
+                return ts;
+            }
+            set { m_SavagePaintExpiration = DateTime.UtcNow + value; }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan NextSmithBulkOrder
+        {
+            get
+            {
+                TimeSpan ts = m_NextSmithBulkOrder - DateTime.UtcNow;
+
+                if (ts < TimeSpan.Zero)
+                {
+                    ts = TimeSpan.Zero;
+                }
+
+                return ts;
+            }
+            set
+            {
+                try
+                {
+                    m_NextSmithBulkOrder = DateTime.UtcNow + value;
+                }
+                catch
+                { }
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan NextTailorBulkOrder
+        {
+            get
+            {
+                TimeSpan ts = m_NextTailorBulkOrder - DateTime.UtcNow;
+
+                if (ts < TimeSpan.Zero)
+                {
+                    ts = TimeSpan.Zero;
+                }
+
+                return ts;
+            }
+            set
+            {
+                try
+                {
+                    m_NextTailorBulkOrder = DateTime.UtcNow + value;
+                }
+                catch
+                { }
+            }
+        }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime LastEscortTime { get; set; }
+
+        [CommandProperty(AccessLevel.GameMaster)]
+        public DateTime LastPetBallTime { get; set; }
+
+        public PlayerMobile()
+        {
+            m_AutoStabled = new List<Mobile>();
+
+            #region Mondain's Legacy
+            m_Quests = new List<BaseQuest>();
+            m_Chains = new Dictionary<QuestChain, BaseChain>();
+            m_DoneQuests = new List<QuestRestartInfo>();
+            m_Collections = new Dictionary<Collection, int>();
+            m_CollectionTitles = new List<object>();
+
+            m_PeacedUntil = DateTime.UtcNow;
+            #endregion
+
+            m_VisList = new List<Mobile>();
+            m_PermaFlags = new List<Mobile>();
+            m_AntiMacroTable = new Hashtable();
+            m_RecentlyReported = new List<Mobile>();
+
+            m_BOBFilter = new BOBFilter();
+
+            m_GameTime = TimeSpan.Zero;
+            m_ShortTermElapse = TimeSpan.FromHours(8.0);
+            m_LongTermElapse = TimeSpan.FromHours(40.0);
+
+            m_JusticeProtectors = new List<Mobile>();
+            m_GuildRank = RankDefinition.Lowest;
+
+            m_ChampionTitles = new ChampionTitleInfo();
+
+            InvalidateMyRunUO();
+        }
+
+        public override bool MutateSpeech(List<Mobile> hears, ref string text, ref object context)
+        {
+            if (Alive)
+            {
+                return false;
+            }
+
+            if (Core.ML && Skills[SkillName.SpiritSpeak].Value >= 100.0)
+            {
+                return false;
+            }
+
+            if (Core.AOS)
+            {
+                for (int i = 0; i < hears.Count; ++i)
+                {
+                    Mobile m = hears[i];
+
+                    if (m != this && m.Skills[SkillName.SpiritSpeak].Value >= 100.0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return base.MutateSpeech(hears, ref text, ref context);
+        }
+
+        public override void DoSpeech(string text, int[] keywords, MessageType type, int hue)
+        {
+            if (Guilds.Guild.NewGuildSystem && (type == MessageType.Guild || type == MessageType.Alliance))
+            {
+                Guild g = Guild as Guild;
+                if (g == null)
+                {
+                    SendLocalizedMessage(1063142); // You are not in a guild!
+                }
+                else if (type == MessageType.Alliance)
+                {
+                    if (g.Alliance != null && g.Alliance.IsMember(g))
+                    {
+                        //g.Alliance.AllianceTextMessage( hue, "[Alliance][{0}]: {1}", this.Name, text );
+                        g.Alliance.AllianceChat(this, text);
+                        SendToStaffMessage(this, "[Alliance]: {0}", text);
+
+                        m_AllianceMessageHue = hue;
+                    }
+                    else
+                    {
+                        SendLocalizedMessage(1071020); // You are not in an alliance!
+                    }
+                }
+                else //Type == MessageType.Guild
+                {
+                    m_GuildMessageHue = hue;
+
+                    g.GuildChat(this, text);
+                    SendToStaffMessage(this, "[Guild]: {0}", text);
+                }
+            }
+            else
+            {
+                base.DoSpeech(text, keywords, type, hue);
+            }
+        }
+
+        private static void SendToStaffMessage(Mobile from, string text)
+        {
+            Packet p = null;
+
+            foreach (NetState ns in from.GetClientsInRange(8))
+            {
+                Mobile mob = ns.Mobile;
+
+                if (mob != null && mob.AccessLevel >= AccessLevel.GameMaster && mob.AccessLevel > from.AccessLevel)
+                {
+                    if (p == null)
+                    {
+                        p =
+                            Packet.Acquire(
+                                new UnicodeMessage(
+                                    from.Serial, from.Body, MessageType.Regular, from.SpeechHue, 3, from.Language, from.Name, text));
+                    }
+
+                    ns.Send(p);
+                }
+            }
+
+            Packet.Release(p);
+        }
+
+        private static void SendToStaffMessage(Mobile from, string format, params object[] args)
+        {
+            SendToStaffMessage(from, String.Format(format, args));
+        }
+
+        public override void Damage(int amount, Mobile from)
+        {
+            if (EvilOmenSpell.TryEndEffect(this))
+            {
+                amount = (int)(amount * 1.25);
+            }
+
+            Mobile oath = BloodOathSpell.GetBloodOath(from);
+
+            /* Per EA's UO Herald Pub48 (ML):
+            * ((resist spellsx10)/20 + 10=percentage of damage resisted)
+            */
 
 			if (oath == this)
 			{

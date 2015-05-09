@@ -304,6 +304,11 @@ namespace Server.Mobiles
             {
                 this.SayTo(from, 502673); // I can not stable summoned creatures.
             }
+            // fix for talisman summons being stabled
+            else if (pet is BaseTalismanSummon)
+            {
+                this.SayTo(from, 502673); // I can not stable summoned creatures.
+            }
             #region Mondain's Legacy
             else if (pet.Allured)
             {

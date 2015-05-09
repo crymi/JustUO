@@ -150,7 +150,9 @@ namespace Server.Engines.Craft
                            (weapon is RuneBlade) ||
                            (weapon is ElvenMachete) ||
                            (weapon is OrnateAxe) ||
+                           (weapon is DupresShield) ||
                            (weapon is DiamondMace);
+
                     #endregion
                 }
                 #region Temporary
@@ -200,6 +202,10 @@ namespace Server.Engines.Craft
                     return (armor is Circlet) ||
                            (armor is RoyalCirclet) ||
                            (armor is GemmedCirclet);
+                }
+                else if (this.m_CraftSystem is DefTinkering)
+                {
+                    return (armor is Glasses);
                 }
                 #endregion
 

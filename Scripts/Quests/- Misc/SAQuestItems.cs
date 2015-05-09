@@ -70,7 +70,7 @@ namespace Server.Items
                 {
                     AddonComponent addoncomponent = (AddonComponent)targeted;
 
-                    if (addoncomponent is MagicVinesComponent || addoncomponent is StoneWallComponent || addoncomponent is DungeonWallComponent)
+                    if (addoncomponent is MagicVinesComponent || addoncomponent is StoneWallComponent || addoncomponent is DungeonWallComponent && addoncomponent.Addon != null)
                     {
                         int Xs = addoncomponent.X;
 
