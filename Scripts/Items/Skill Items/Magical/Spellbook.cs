@@ -22,8 +22,12 @@ namespace Server.Items
 		Ninja,
 		Samurai,
 		Arcanist,
-		Mystic
-	}
+		Mystic,
+        #region Bard Masteries 
+        Bard
+
+        #endregion
+    }
 
 	public enum BookQuality
 	{
@@ -238,10 +242,17 @@ namespace Server.Items
 			{
 				return SpellbookType.Arcanist;
 			}
-			else if (spellID >= 677 && spellID < 693)
-			{
-				return SpellbookType.Mystic;
-			}
+            else if (spellID >= 677 && spellID < 693)
+            {
+                return SpellbookType.Mystic;
+            }
+
+            #region Bard Masteries
+            else if (spellID >= 700 && spellID < 706)
+            {
+                return SpellbookType.Bard;
+            } 
+            #endregion
 
 			return SpellbookType.Invalid;
 		}
@@ -280,6 +291,13 @@ namespace Server.Items
 		{
 			return Find(from, -1, SpellbookType.Mystic);
 		}
+
+        #region Bard Masteries
+        public static Spellbook FindBard(Mobile from)
+        {
+            return Find(from, -1, SpellbookType.Bard);
+        } 
+        #endregion
 
 		public static Spellbook Find(Mobile from, int spellID)
 		{
@@ -1048,9 +1066,14 @@ namespace Server.Items
 				case 6:
 					type = SpellbookType.Arcanist;
 					break;
-				case 7:
-					type = SpellbookType.Mystic;
-					break;
+                case 7:
+                    type = SpellbookType.Mystic;
+                    break;
+                #region Bard Masteries
+                case 8:
+                    type = SpellbookType.Bard;
+                    break; 
+                #endregion
 			}
 
 			Spellbook book = Find(from, -1, type);
