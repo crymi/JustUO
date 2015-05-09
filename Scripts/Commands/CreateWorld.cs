@@ -42,12 +42,12 @@ namespace Server.Gumps
 
             //fundo cinza
             //x, y, largura, altura, item
-            this.AddBackground(0, 0, 240, 625, 5054);
+            this.AddBackground(0, 0, 240, 634, 5054);
             //----------
             this.AddLabel(40, 2, 200, "CREATE WORLD GUMP");
             //fundo branco
             //x, y, largura, altura, item
-            this.AddImageTiled(10, 20, 220, 560, 3004);
+            this.AddImageTiled(10, 20, 220, 585, 3004);
             //----------
             this.AddLabel(20, 26, 246, "Generate Moongen ");
             this.AddLabel(20, 51, 246, "Generate Door");
@@ -64,13 +64,14 @@ namespace Server.Gumps
             this.AddLabel(20, 326, 200, "Generate Factions");
             this.AddLabel(20, 351, 246, "Decorate Mondain's");
             this.AddLabel(20, 376, 246, "Decorate Stygian");
-            this.AddLabel(20, 401, 246, "GenPrimevalLichLever");
-            this.AddLabel(20, 426, 221, "Spawn Felucca");
-            this.AddLabel(20, 451, 221, "Spawn Trammel");
-            this.AddLabel(20, 476, 221, "Spawn Ilshenar");
-            this.AddLabel(20, 501, 221, "Spawn Malas");
-            this.AddLabel(20, 526, 221, "Spawn Tokuno");
-            this.AddLabel(20, 551, 221, "Spawn TerMur");
+            this.AddLabel(20, 401, 246, "Decorate High Sea's");
+            this.AddLabel(20, 426, 246, "GenPrimevalLichLever");
+            this.AddLabel(20, 451, 221, "Spawn Felucca");
+            this.AddLabel(20, 476, 221, "Spawn Trammel");
+            this.AddLabel(20, 501, 221, "Spawn Ilshenar");
+            this.AddLabel(20, 526, 221, "Spawn Malas");
+            this.AddLabel(20, 551, 221, "Spawn Tokuno");
+            this.AddLabel(20, 576, 221, "Spawn TerMur");
             //Options
             //Options
             this.AddCheck(180, 23, 210, 211, true, 101);
@@ -88,13 +89,14 @@ namespace Server.Gumps
             this.AddCheck(180, 323, 210, 211, true, 116);
             this.AddCheck(180, 348, 210, 211, true, 113);
             this.AddCheck(180, 373, 210, 211, true, 114);
-            this.AddCheck(180, 398, 210, 211, true, 115);
-            this.AddCheck(180, 423, 210, 211, true, 117);
-            this.AddCheck(180, 448, 210, 211, true, 118);
-            this.AddCheck(180, 473, 210, 211, true, 119);
-            this.AddCheck(180, 498, 210, 211, true, 120);
-            this.AddCheck(180, 523, 210, 211, true, 121);
-            this.AddCheck(180, 548, 210, 211, true, 122);
+            this.AddCheck(180, 398, 210, 211, true, 123);
+            this.AddCheck(180, 423, 210, 211, true, 115);
+            this.AddCheck(180, 448, 210, 211, true, 117);
+            this.AddCheck(180, 473, 210, 211, true, 118);
+            this.AddCheck(180, 498, 210, 211, true, 119);
+            this.AddCheck(180, 523, 210, 211, true, 120);
+            this.AddCheck(180, 548, 210, 211, true, 121);
+            this.AddCheck(180, 573, 210, 211, true, 122);
             //Ok, Cancel (x, y, ?, ?, ?)
             this.AddButton(60, 600, 247, 249, 1, GumpButtonType.Reply, 0);
             this.AddButton(130, 600, 241, 243, 0, GumpButtonType.Reply, 0);
@@ -216,38 +218,44 @@ namespace Server.Gumps
 
                             if (Selections.Contains(117) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad felucca.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/felucca.xml", prefix));
                                 from.Say("Felucca spawned!");
                             }
 
                             if (Selections.Contains(118) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad trammel.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/trammel.xml", prefix));
                                 from.Say("Trammel spawned!");
                             }
 
                             if (Selections.Contains(119) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad ilshenar.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/ilshenar.xml", prefix));
                                 from.Say("Ilshenar spawned!");
                             }
 
                             if (Selections.Contains(120) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad malas.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/malas.xml", prefix));
                                 from.Say("Malas spawned!");
                             }
 
                             if (Selections.Contains(121) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad tokuno.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/tokuno.xml", prefix));
                                 from.Say("Tokuno spawned!");
                             }
 
                             if (Selections.Contains(122) == true)
                             {
-                                CommandSystem.Handle(from, String.Format("{0}XmlLoad termur.xml", prefix));
+                                CommandSystem.Handle(from, String.Format("{0}XmlLoad spawns/termur.xml", prefix));
                                 from.Say("TerMur spawned!");
+                            }
+
+                            if (Selections.Contains(123) == true)
+                            {
+                                CommandSystem.Handle(from, String.Format("{0}DecorateHS", prefix));
+                                from.Say("High Sea's Decorate!");
                             }
                         }
 

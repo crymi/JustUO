@@ -52,11 +52,15 @@ namespace Server.Mobiles
             this.Name = "the harrower";
             this.BodyValue = 146;
 
-            this.SetStr(900, 1000);
-            this.SetDex(125, 135);
-            this.SetInt(1000, 1200);
+            this.SetHits(39000);
+            this.SetStam(126, 140);
+            this.SetMana(5000, 5000);
 
-            this.Fame = 22500;
+            this.SetStr(901, 1000);
+            this.SetDex(126, 140);
+            this.SetInt(1001, 1200);
+
+            this.Fame = 25000;
             this.Karma = -22500;
 
             this.VirtualArmor = 60;

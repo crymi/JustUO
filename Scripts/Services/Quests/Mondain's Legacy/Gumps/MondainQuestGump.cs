@@ -210,156 +210,181 @@ namespace Server.Engines.Quests
                 this.AddHtmlLocalized(98, 156, 312, 16, 1072209, 0x2710, false, false); // Only one of the following
 			
             int offset = 172;
-				
-            for (int i = 0; i < this.m_Quest.Objectives.Count; i ++)
+
+            for (int i = 0; i < this.m_Quest.Objectives.Count; i++)
             {
                 BaseObjective objective = this.m_Quest.Objectives[i];
-				
+
                 if (objective is SlayObjective)
                 {
                     SlayObjective slay = (SlayObjective)objective;
-					
+
                     this.AddHtmlLocalized(98, offset, 30, 16, 1072204, 0x15F90, false, false); // Slay	
                     this.AddLabel(133, offset, 0x481, slay.MaxProgress + " " + slay.Name); // %count% + %name%
-					
-                    offset += 16;	
-					
+
+                    offset += 16;
+
                     if (this.m_Offer)
                     {
                         if (slay.Timed)
                         {
                             this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                             this.AddLabel(223, offset, 0x481, this.FormatSeconds(slay.Seconds)); // %est. time remaining%
-					
+
                             offset += 16;
                         }
                         continue;
                     }
-					
-                    if (slay.Region != null)	
+
+                    if (slay.Region != null)
                     {
                         this.AddHtmlLocalized(103, offset, 312, 20, 1018327, 0x15F90, false, false); // Location
                         this.AddHtmlObject(223, offset, 312, 20, slay.Region.Name, White, false, false); // %location%
-							
+
                         offset += 16;
                     }
-					
+
                     this.AddHtmlLocalized(103, offset, 120, 16, 3000087, 0x15F90, false, false); // Total			
                     this.AddLabel(223, offset, 0x481, slay.CurProgress.ToString());	 // %current progress%
-					
+
                     offset += 16;
-					
+
                     if (this.ReturnTo() != null)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1074782, 0x15F90, false, false); // Return to	
                         this.AddLabel(223, offset, 0x481, this.ReturnTo());	 // %return to%		
-						
+
                         offset += 16;
                     }
-					
+
                     if (slay.Timed)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                         this.AddLabel(223, offset, 0x481, this.FormatSeconds(slay.Seconds)); // %est. time remaining%
-					
-                        offset += 16;	
+
+                        offset += 16;
                     }
                 }
                 else if (objective is ObtainObjective)
                 {
                     ObtainObjective obtain = (ObtainObjective)objective;
-					
+
                     this.AddHtmlLocalized(98, offset, 40, 16, 1072205, 0x15F90, false, false); // Obtain						
                     this.AddLabel(143, offset, 0x481, obtain.MaxProgress + " " + obtain.Name); // %count% + %name%
-					
+
                     if (obtain.Image > 0)
                         this.AddItem(350, offset, obtain.Image); // Image
-										
-                    offset += 16;	
-					
+
+                    offset += 16;
+
                     if (this.m_Offer)
                     {
                         if (obtain.Timed)
                         {
                             this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                             this.AddLabel(223, offset, 0x481, this.FormatSeconds(obtain.Seconds)); // %est. time remaining%
-					
+
                             offset += 16;
                         }
                         else if (obtain.Image > 0)
                             offset += 16;
-						
+
                         continue;
                     }
                     this.AddHtmlLocalized(103, offset, 120, 16, 3000087, 0x15F90, false, false); // Total			
                     this.AddLabel(223, offset, 0x481, obtain.CurProgress.ToString());	 // %current progress%
-					
+
                     offset += 16;
-					
+
                     if (this.ReturnTo() != null)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1074782, 0x15F90, false, false); // Return to	
                         this.AddLabel(223, offset, 0x481, this.ReturnTo());	 // %return to%
-						
+
                         offset += 16;
                     }
-					
+
                     if (obtain.Timed)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                         this.AddLabel(223, offset, 0x481, this.FormatSeconds(obtain.Seconds)); // %est. time remaining%
-					
+
                         offset += 16;
                     }
                 }
                 else if (objective is DeliverObjective)
                 {
                     DeliverObjective deliver = (DeliverObjective)objective;
-					
+
                     this.AddHtmlLocalized(98, offset, 40, 16, 1072207, 0x15F90, false, false); // Deliver						
                     this.AddLabel(143, offset, 0x481, deliver.MaxProgress + " " + deliver.DeliveryName);	 // %name%
-					
+
                     offset += 16;
-					
+
                     this.AddHtmlLocalized(103, offset, 120, 16, 1072379, 0x15F90, false, false); // Deliver to						
                     this.AddLabel(223, offset, 0x481, deliver.DestName); // %deliver to%
-						
+
                     offset += 16;
-					
+
                     if (deliver.Timed)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                         this.AddLabel(223, offset, 0x481, this.FormatSeconds(deliver.Seconds)); // %est. time remaining%
-											
+
                         offset += 16;
                     }
                 }
                 else if (objective is EscortObjective)
                 {
                     EscortObjective escort = (EscortObjective)objective;
-					
+
                     this.AddHtmlLocalized(98, offset, 50, 16, 1072206, 0x15F90, false, false); // Escort to
                     this.AddHtmlObject(153, offset, 200, 16, escort.Region.Name, White, false, false);
-					
+
                     offset += 16;
-					
+
                     if (escort.Timed)
                     {
                         this.AddHtmlLocalized(103, offset, 120, 16, 1062379, 0x15F90, false, false); // Est. time remaining:
                         this.AddLabel(223, offset, 0x481, this.FormatSeconds(escort.Seconds)); // %est. time remaining%
-											
+
                         offset += 16;
                     }
                 }
                 else if (objective is ApprenticeObjective)
                 {
                     ApprenticeObjective apprentice = (ApprenticeObjective)objective;
-					
+
                     this.AddHtmlLocalized(98, offset, 200, 16, 1077485, "#" + (1044060 + (int)apprentice.Skill) + "\t" + apprentice.MaxProgress, 0x15F90, false, false); // Increase ~1_SKILL~ to ~2_VALUE~
-														
+
                     offset += 16;
                 }
-            }
+
+                #region Bard Masteries
+                else if (objective is CalmObjective)
+                {
+                    if (this.m_Quest.GetType() == typeof(BeaconOfHarmony))
+                    {
+                        CalmObjective calm = (CalmObjective)objective;
+
+                        this.AddHtmlLocalized(98, offset, 350, 16, 1115678, 0x15F90, false, false); //Calm five mongbats.
+
+                        offset += 16;
+                    }
+                }
+                else if (objective is DiscordObjective)
+                {
+                    if (this.m_Quest.GetType() == typeof(WieldingSonicBlade))
+                    {
+                        DiscordObjective discord = (DiscordObjective)objective;
+
+                        this.AddHtmlLocalized(98, offset, 350, 16, 1115698, 0x15F90, false, false); // Discord five goats.
+
+                        offset += 16;
+                    }
+                }
+            } 
+                #endregion
 			
             if (this.m_Offer)
             {

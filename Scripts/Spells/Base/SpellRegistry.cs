@@ -5,7 +5,7 @@ namespace Server.Spells
 {
     public class SpellRegistry
     {
-        private static readonly Type[] m_Types = new Type[700];
+        private static readonly Type[] m_Types = new Type[706];// 700 old value
         private static int m_Count;
 
         public static Type[] Types
@@ -149,8 +149,11 @@ namespace Server.Spells
             "Ninjitsu",
             "Spellweaving",
             #region Stygian Abyss
-            "Mystic"
+            "Mystic",
             #endregion
+            #region Bard Masteries
+		    "Bard" 
+	        #endregion
         };
 
         public static Spell NewSpell(string name, Mobile caster, Item scroll)

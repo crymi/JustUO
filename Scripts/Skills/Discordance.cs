@@ -6,6 +6,9 @@ using Server.Engines.XmlSpawner2;
 using Server.Items;
 using Server.Mobiles;
 using Server.Targeting;
+#region Bard Masteries
+using Server.Engines.Quests; 
+#endregion
 #endregion
 
 namespace Server.SkillHandlers
@@ -155,6 +158,9 @@ namespace Server.SkillHandlers
 							from.SendLocalizedMessage(1049539); // You play the song surpressing your targets strength
 							m_Instrument.PlayInstrumentWell(from);
 							m_Instrument.ConsumeUse(from);
+                            #region Bard Masteries
+                            QuestHelper.CheckDiscord((PlayerMobile)from, (BaseCreature)targ); 
+                            #endregion
 
 							ArrayList mods = new ArrayList();
 							int effect;

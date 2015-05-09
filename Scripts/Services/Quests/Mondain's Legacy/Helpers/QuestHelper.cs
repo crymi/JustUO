@@ -543,6 +543,79 @@ namespace Server.Engines.Quests
                 }
             }
         }
+        #region Bard Masteries
+        public static bool CheckCalm(PlayerMobile player, BaseCreature creature, bool progress = true)
+        {
+            for (int i = player.Quests.Count - 1; i >= 0; i--)
+            {
+                BaseQuest quest = player.Quests[i];
+
+                if (quest.Completed)
+                {
+                    return false;
+                }
+
+                for (int j = quest.Objectives.Count - 1; j >= 0; j--)
+                {
+                    if (quest.Objectives[j] is CalmObjective)
+                    {
+                        CalmObjective calm = (CalmObjective)quest.Objectives[j];
+
+                        if (!progress)
+                            return true;
+
+                        if (calm.Update(creature))
+                        {
+                            if (quest.Completed)
+                                quest.OnCompleted();
+                            else if (calm.Completed)
+                                player.PlaySound(quest.UpdateSound);
+
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public static bool CheckDiscord(PlayerMobile player, BaseCreature creature, bool progress = true)
+        {
+            for (int i = player.Quests.Count - 1; i >= 0; i--)
+            {
+                BaseQuest quest = player.Quests[i];
+
+                if (quest.Completed)
+                {
+                    return false;
+                }
+
+                for (int j = quest.Objectives.Count - 1; j >= 0; j--)
+                {
+                    if (quest.Objectives[j] is DiscordObjective)
+                    {
+                        DiscordObjective discord = (DiscordObjective)quest.Objectives[j];
+
+                        if (!progress)
+                            return true;
+
+                        if (discord.Update(creature))
+                        {
+                            if (quest.Completed)
+                                quest.OnCompleted();
+                            else if (discord.Completed)
+                                player.PlaySound(quest.UpdateSound);
+
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        } 
+        #endregion
 
         public static bool CheckCreature(PlayerMobile player, BaseCreature creature)
         {

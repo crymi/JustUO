@@ -26,6 +26,7 @@ using Server.Network;
 using Server.Regions;
 using Server.SkillHandlers;
 using Server.Spells;
+using Server.Spells.Bard;
 using Server.Spells.Bushido;
 using Server.Spells.Fifth;
 using Server.Spells.Fourth;
@@ -232,8 +233,30 @@ namespace Server.Mobiles
 		private List<Mobile> m_AllFollowers;
 		private List<Mobile> m_RecentlyReported;
 
-		#region Guantlet Points
-		private double m_GauntletPoints;
+        #region Bard Masteries
+
+	    private List<string> m_BardMasteries = new List<string>();
+        public List<BardTimer> m_ActiveSongs = new List<BardTimer>();
+
+	    private string m_BardActiveMastery = null;
+	    private DateTime m_BardLastMasterySwitch = new DateTime();
+
+        private Dictionary<BardEffect, Mobile> m_BardEffects = new Dictionary<BardEffect, Mobile>();
+
+        public Dictionary<BardEffect, Mobile> BardEffects { get { return m_BardEffects; } set { m_BardEffects = value; } }
+
+	    public List<string> BardMasteries { get { return m_BardMasteries; } set { m_BardMasteries = value; } }
+
+        public string BardActiveMastery { get { return m_BardActiveMastery; } set { m_BardActiveMastery = value; } }
+
+        public DateTime BardLastMasterySwitch { get { return m_BardLastMasterySwitch; } set { m_BardLastMasterySwitch = value; } }
+
+        public List<BardTimer> ActiveSongs { get { return m_ActiveSongs; } }
+
+	    #endregion
+
+        #region Guantlet Points
+        private double m_GauntletPoints;
 
 		[CommandProperty(AccessLevel.Administrator)]
 		public double GauntletPoints { get { return m_GauntletPoints; } set { m_GauntletPoints = value; } }
@@ -3352,53 +3375,82 @@ namespace Server.Mobiles
             set { m_SavagePaintExpiration = DateTime.UtcNow + value; }
         }
 
-        [CommandProperty(AccessLevel.GameMaster)]
-        public TimeSpan NextSmithBulkOrder
+        //2015-01-12 Modified for Publish 74 Bulk Order Cache by Higoo
+        //public TimeSpan NextSmithBulkOrder
+        //{
+        //    get
+        //    {
+        //        TimeSpan ts = m_NextSmithBulkOrder - DateTime.Now;
+
+        //        if (ts < TimeSpan.Zero)
+        //        {
+        //            ts = TimeSpan.Zero;
+        //        }
+
+        //        return ts;
+        //    }
+        //    set
+        //    {
+        //        try
+        //        {
+        //            m_NextSmithBulkOrder = DateTime.Now + value;
+        //        }
+        //        catch { }
+        //    }
+        //}
+        public DateTime NextSmithBulkOrder
         {
             get
             {
-                TimeSpan ts = m_NextSmithBulkOrder - DateTime.UtcNow;
-
-                if (ts < TimeSpan.Zero)
+                if (m_NextSmithBulkOrder == null)
                 {
-                    ts = TimeSpan.Zero;
+                    return DateTime.MinValue;
                 }
-
-                return ts;
+                return m_NextSmithBulkOrder;
             }
             set
             {
-                try
-                {
-                    m_NextSmithBulkOrder = DateTime.UtcNow + value;
-                }
-                catch
-                { }
+                m_NextSmithBulkOrder = value;
             }
         }
 
         [CommandProperty(AccessLevel.GameMaster)]
-        public TimeSpan NextTailorBulkOrder
+        //2015-01-12 Modified for Publish 74 Bulk Order Cache by Higoo
+        //public TimeSpan NextTailorBulkOrder
+        //{
+        //    get
+        //    {
+        //        TimeSpan ts = m_NextTailorBulkOrder - DateTime.Now;
+
+        //        if (ts < TimeSpan.Zero)
+        //        {
+        //            ts = TimeSpan.Zero;
+        //        }
+
+        //        return ts;
+        //    }
+        //    set
+        //    {
+        //        try
+        //        {
+        //            m_NextTailorBulkOrder = DateTime.Now + value;
+        //        }
+        //        catch { }
+        //    }
+        //}
+        public DateTime NextTailorBulkOrder
         {
             get
             {
-                TimeSpan ts = m_NextTailorBulkOrder - DateTime.UtcNow;
-
-                if (ts < TimeSpan.Zero)
+                if (m_NextTailorBulkOrder == null)
                 {
-                    ts = TimeSpan.Zero;
+                    return DateTime.MinValue;
                 }
-
-                return ts;
+                return m_NextTailorBulkOrder;
             }
             set
             {
-                try
-                {
-                    m_NextTailorBulkOrder = DateTime.UtcNow + value;
-                }
-                catch
-                { }
+                m_NextTailorBulkOrder = value;
             }
         }
 
@@ -3411,6 +3463,7 @@ namespace Server.Mobiles
         public PlayerMobile()
         {
             m_AutoStabled = new List<Mobile>();
+                    
 
             #region Mondain's Legacy
             m_Quests = new List<BaseQuest>();
@@ -3423,6 +3476,9 @@ namespace Server.Mobiles
             #endregion
 
             m_VisList = new List<Mobile>();
+
+            //BardIsIntoneActive = false;
+
             m_PermaFlags = new List<Mobile>();
             m_AntiMacroTable = new Hashtable();
             m_RecentlyReported = new List<Mobile>();
@@ -3735,6 +3791,19 @@ namespace Server.Mobiles
 
 			switch (version)
 			{
+                case 30:
+                    {
+                        if (reader.ReadBool())
+                        {
+                            for (int i = reader.ReadInt(); i > 0; i--)
+                            {
+                                BardMasteries.Add(reader.ReadString());
+                            }
+
+                        }
+                        goto case 29;
+                    }
+
                 case 29:
 					{
 						m_GauntletPoints = reader.ReadDouble();
@@ -3964,16 +4033,35 @@ namespace Server.Mobiles
 						m_PermaFlags = reader.ReadStrongMobileList();
 						goto case 6;
 					}
-				case 6:
-					{
-						NextTailorBulkOrder = reader.ReadTimeSpan();
-						goto case 5;
-					}
-				case 5:
-					{
-						NextSmithBulkOrder = reader.ReadTimeSpan();
-						goto case 4;
-					}
+                case 6:
+                    {
+                        //2015-01-12 Modified for Bulk Orders Cache by Higoo
+                        //NextTailorBulkOrder = reader.ReadTimeSpan();
+                        try
+                        {
+                            NextTailorBulkOrder = reader.ReadDateTime();
+                        }
+                        catch
+                        {
+                            NextTailorBulkOrder = DateTime.MinValue;
+                        }
+                        goto case 5;
+                    }
+                case 5:
+                    {
+                        //2015-01-12 Modified for Bulk Orders Cache by Higoo
+                        //NextSmithBulkOrder = reader.ReadTimeSpan();
+                        try
+                        {
+                            NextSmithBulkOrder = reader.ReadDateTime();
+                        }
+                        catch
+                        {
+                            NextSmithBulkOrder = DateTime.MinValue;
+                        }
+                        goto case 4;
+                    }
+
 				case 4:
 					{
 						m_LastJusticeLoss = reader.ReadDeltaTime();
@@ -4142,8 +4230,23 @@ namespace Server.Mobiles
 
 			base.Serialize(writer);
 
-			writer.Write(29); // version old 28
+			writer.Write(30); // version old 29
 
+            // Version 30
+
+            #region Bard Masteries
+            writer.Write(BardMasteries.Count > 0);
+
+            if (BardMasteries.Count > 0)
+            {
+                writer.Write(BardMasteries.Count);
+
+                for (int i = BardMasteries.Count; i > 0; i--)
+                {
+                    writer.Write(BardMasteries[i]);
+                }
+            } 
+            #endregion
 			// Version 29
 			writer.Write(m_GauntletPoints);
 

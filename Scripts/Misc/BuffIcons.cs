@@ -279,7 +279,15 @@ namespace Server
         SpellPlague,
         SpellTrigger,
         NetherBolt,
-        Fly      
+        Fly,
+        Inspire = 0x041F,
+        Invigorate,
+        Resilience,
+        Perseverance,
+        Tribulation,
+        TribulationTarget,
+        Despair,
+        DespairTarget
     }
 
     public sealed class AddBuffPacket : Packet

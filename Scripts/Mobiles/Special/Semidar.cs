@@ -21,17 +21,18 @@ namespace Server.Mobiles
 
             this.SetHits(10000);
             this.SetStam(103, 250);
+            this.SetMana(601, 750);
 
             this.SetDamage(29, 35);
 
             this.SetDamageType(ResistanceType.Physical, 75);
             this.SetDamageType(ResistanceType.Fire, 25);
 
-            this.SetResistance(ResistanceType.Physical, 75, 90);
-            this.SetResistance(ResistanceType.Fire, 65, 75);
-            this.SetResistance(ResistanceType.Cold, 60, 70);
-            this.SetResistance(ResistanceType.Poison, 65, 75);
-            this.SetResistance(ResistanceType.Energy, 65, 75);
+            this.SetResistance(ResistanceType.Physical, 20, 30);
+            this.SetResistance(ResistanceType.Fire, 50, 60);
+            this.SetResistance(ResistanceType.Cold, 20, 30);
+            this.SetResistance(ResistanceType.Poison, 20, 30);
+            this.SetResistance(ResistanceType.Energy, 10, 20);
 
             this.SetSkill(SkillName.EvalInt, 95.1, 100.0);
             this.SetSkill(SkillName.Magery, 90.1, 105.0);

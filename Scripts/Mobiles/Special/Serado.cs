@@ -23,6 +23,7 @@ namespace Server.Mobiles
 
             this.SetHits(9000);
             this.SetMana(300);
+            this.SetStam(150);
 
             this.SetDamage(29, 35);
 

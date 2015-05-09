@@ -17,7 +17,7 @@ namespace Server.Mobiles
             Body = 0x190;
             Hue = 0x83EC;
 
-            SetStr(283, 425);
+            SetStr(305, 425);
             SetDex(72, 150);
             SetInt(505, 750);
 
@@ -29,15 +29,15 @@ namespace Server.Mobiles
 
             SetDamageType(ResistanceType.Physical, 100);
 
-            SetResistance(ResistanceType.Physical, 65, 75);
-            SetResistance(ResistanceType.Fire, 70, 80);
-            SetResistance(ResistanceType.Cold, 65, 80);
-            SetResistance(ResistanceType.Poison, 70, 75);
-            SetResistance(ResistanceType.Energy, 70, 80);
+            SetResistance(ResistanceType.Physical, 60, 70);
+            SetResistance(ResistanceType.Fire, 50, 60);
+            SetResistance(ResistanceType.Cold, 50, 60);
+            SetResistance(ResistanceType.Poison, 40, 50);
+            SetResistance(ResistanceType.Energy, 40, 50);
 
             SetSkill(SkillName.MagicResist, 100.0);
-            SetSkill(SkillName.Tactics, 118.3, 120.2);
-            SetSkill(SkillName.Wrestling, 118.4, 122.7);
+            SetSkill(SkillName.Tactics, 97.6, 100.0);
+            SetSkill(SkillName.Wrestling, 97.6, 100.0);
 
             Fame = 22500;
             Karma = -22500;
@@ -281,6 +281,14 @@ namespace Server.Mobiles
                 Polymorph(this);
         }
 
+        #region Spell Damage Abilties
+        public override void OnDamagedBySpell(Mobile from)
+        {
+            base.OnDamagedBySpell(from);
+
+            DoSpecialAbility(from);
+        }
+        #endregion
         public override void OnGotMeleeAttack(Mobile attacker)
         {
             base.OnGotMeleeAttack(attacker);

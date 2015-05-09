@@ -6,6 +6,9 @@ using Server.Engines.XmlSpawner2;
 using Server.Items;
 using Server.Mobiles;
 using Server.Targeting;
+#region Bard Masteries
+using Server.Engines.Quests;
+#endregion
 #endregion
 
 namespace Server.SkillHandlers
@@ -218,6 +221,9 @@ namespace Server.SkillHandlers
 									targ.SendLocalizedMessage(500616); // You hear lovely music, and forget to continue battling!
 									targ.Combatant = null;
 									targ.Warmode = false;
+                                    #region Bard Masteries
+                                    QuestHelper.CheckCalm((PlayerMobile)from, (BaseCreature)targ); 
+                                    #endregion
 								}
 							}
 						}
