@@ -384,171 +384,172 @@ namespace Server.Mobiles
                         m_Vendor.SayTo(m_From, 500389);    // I will not do business with a criminal!
                         return;
                     }
+                    if (targeted is Item)
+                    {
+                        Item item = (Item)targeted;
 
-                    if (!((Item)targeted).IsChildOf(m_From.Backpack))
-                    {
-                        m_Vendor.SayTo(m_From, 1152300);    // That does not appear to be yours.
-                        return;
-                    }
+                        if (item.RootParent != from)
+                            from.SendMessage("That must be in your pack");
 
-                    if (targeted is LargeSmithBOD)
-                    {
-                        m_Vendor.BODisSmith = true;
-                        m_Vendor.BODisLarge = true;
-                    }
-                    else if (targeted is SmallSmithBOD)
-                    {
-                        m_Vendor.BODisSmith = true;
-                        m_Vendor.BODamount = ((SmallBOD)targeted).AmountMax;
-                    }
-                    else if (targeted is LargeTailorBOD)
-                    {
-                        m_Vendor.BODisLarge = true;
-                    }
-                    else if (targeted is SmallTailorBOD)
-                    {
-                        m_Vendor.BODamount = ((SmallBOD)targeted).AmountMax;
-                    }
-                    else
-                    {
-                        m_Vendor.SayTo(m_From, 1152297);    // That is not a bulk order deed.
-                        return;
-                    }
 
-                    if (((m_Vendor is Blacksmith || m_Vendor is Weaponsmith) && !m_Vendor.BODisSmith) ||
-                        ((m_Vendor is Tailor || m_Vendor is Weaver) && m_Vendor.BODisSmith))
-                    {
-                        m_Vendor.SayTo(m_From, 1045130);    // That order is for some other shopkeeper.
-                        return;
-                    }
-
-                    if (m_Vendor.BODisLarge)
-                    {
-                        LargeBOD bod = (LargeBOD)targeted;
-                        foreach (LargeBulkEntry entries in bod.Entries)
+                        else if (targeted is LargeSmithBOD)
                         {
-                            if (typeof(BaseWeapon).IsAssignableFrom(entries.Details.Type))
-                            {
-                                m_Vendor.BODisBase = true;
-                            }
-                            else if (typeof(BaseClothing).IsAssignableFrom(entries.Details.Type) && !typeof(BaseShoes).IsAssignableFrom(entries.Details.Type))
-                            {
-                                m_Vendor.BODisBase = true;
-                            }
+                            m_Vendor.BODisSmith = true;
+                            m_Vendor.BODisLarge = true;
+                        }
+                        else if (targeted is SmallSmithBOD)
+                        {
+                            m_Vendor.BODisSmith = true;
+                            m_Vendor.BODamount = ((SmallBOD)targeted).AmountMax;
+                        }
+                        else if (targeted is LargeTailorBOD)
+                        {
+                            m_Vendor.BODisLarge = true;
+                        }
+                        else if (targeted is SmallTailorBOD)
+                        {
+                            m_Vendor.BODamount = ((SmallBOD)targeted).AmountMax;
+                        }
+                        else
+                        {
+                            m_Vendor.SayTo(m_From, 1152297);    // That is not a bulk order deed.
+                            return;
+                        }
 
-                            if (entries.Amount > 0)
+                        if (((m_Vendor is Blacksmith || m_Vendor is Weaponsmith) && !m_Vendor.BODisSmith) ||
+                            ((m_Vendor is Tailor || m_Vendor is Weaver) && m_Vendor.BODisSmith))
+                        {
+                            m_Vendor.SayTo(m_From, 1045130);    // That order is for some other shopkeeper.
+                            return;
+                        }
+
+                        if (m_Vendor.BODisLarge)
+                        {
+                            LargeBOD bod = (LargeBOD)targeted;
+                            foreach (LargeBulkEntry entries in bod.Entries)
+                            {
+                                if (typeof(BaseWeapon).IsAssignableFrom(entries.Details.Type))
+                                {
+                                    m_Vendor.BODisBase = true;
+                                }
+                                else if (typeof(BaseClothing).IsAssignableFrom(entries.Details.Type) && !typeof(BaseShoes).IsAssignableFrom(entries.Details.Type))
+                                {
+                                    m_Vendor.BODisBase = true;
+                                }
+
+                                if (entries.Amount > 0)
+                                {
+                                    m_Vendor.SayTo(m_From, 1152299);    // I am sorry to say I cannot work with a deed that is even partially filled.
+                                    return;
+                                }
+                            }
+                            m_Vendor.BODamount = bod.AmountMax;
+                            m_Vendor.BODexceptional = bod.RequireExceptional;
+                            m_Vendor.BODmaterial = bod.Material;
+                        }
+                        else
+                        {
+                            SmallBOD bod = (SmallBOD)targeted;
+
+                            if (bod.AmountCur > 0)
                             {
                                 m_Vendor.SayTo(m_From, 1152299);    // I am sorry to say I cannot work with a deed that is even partially filled.
                                 return;
                             }
-                        }
-                        m_Vendor.BODamount = bod.AmountMax;
-                        m_Vendor.BODexceptional = bod.RequireExceptional;
-                        m_Vendor.BODmaterial = bod.Material;
-                    }
-                    else
-                    {
-                        SmallBOD bod = (SmallBOD)targeted;
 
-                        if (bod.AmountCur > 0)
+                            m_Vendor.BODexceptional = bod.RequireExceptional;
+                            m_Vendor.BODmaterial = bod.Material;
+
+                            if (typeof(BaseWeapon).IsAssignableFrom(bod.Type))
+                            {
+                                m_Vendor.BODisBase = true;
+                            }
+                            else if (typeof(BaseClothing).IsAssignableFrom(bod.Type) && !typeof(BaseShoes).IsAssignableFrom(bod.Type))
+                            {
+                                m_Vendor.BODisBase = true;
+                            }
+                        }
+
+                        int rank = 0;
+                        if (m_Vendor.BODamount == 20)
                         {
-                            m_Vendor.SayTo(m_From, 1152299);    // I am sorry to say I cannot work with a deed that is even partially filled.
+                            rank++;
+                        }
+                        if (m_Vendor.BODexceptional)
+                        {
+                            rank++;
+                        }
+                        if (m_Vendor.BODmaterial == BulkMaterialType.Valorite || m_Vendor.BODmaterial == BulkMaterialType.Barbed)
+                        {
+                            rank++;
+                        }
+                        if (m_Vendor.BODisBase)
+                        {
+                            rank++;
+                        }
+                        if (rank >= 3)
+                        {
+                            m_Vendor.SayTo(m_From, 1152291);    // I won't be able to replace that bulk order with a better one.
                             return;
                         }
 
-                        m_Vendor.BODexceptional = bod.RequireExceptional;
-                        m_Vendor.BODmaterial = bod.Material;
+                        int price = 0;
+                        int y = 0;
+                        int x = (m_Vendor.BODamount / 5) - 2 + (m_Vendor.BODexceptional ? 3 : 0);
 
-                        if (typeof(BaseWeapon).IsAssignableFrom(bod.Type))
+                        if (m_Vendor.BODisSmith)
                         {
-                            m_Vendor.BODisBase = true;
-                        }
-                        else if (typeof(BaseClothing).IsAssignableFrom(bod.Type) && !typeof(BaseShoes).IsAssignableFrom(bod.Type))
-                        {
-                            m_Vendor.BODisBase = true;
-                        }
-                    }
-
-                    int rank = 0;
-                    if (m_Vendor.BODamount == 20)
-                    {
-                        rank++;
-                    }
-                    if (m_Vendor.BODexceptional)
-                    {
-                        rank++;
-                    }
-                    if (m_Vendor.BODmaterial == BulkMaterialType.Valorite || m_Vendor.BODmaterial == BulkMaterialType.Barbed)
-                    {
-                        rank++;
-                    }
-                    if (m_Vendor.BODisBase)
-                    {
-                        rank++;
-                    }
-                    if (rank >= 3)
-                    {
-                        m_Vendor.SayTo(m_From, 1152291);    // I won't be able to replace that bulk order with a better one.
-                        return;
-                    }
-
-                    int price = 0;
-                    int y = 0;
-                    int x = (m_Vendor.BODamount / 5) - 2 + (m_Vendor.BODexceptional ? 3 : 0);
-
-                    if (m_Vendor.BODisSmith)
-                    {
-                        y = (int)m_Vendor.BODmaterial + (!m_Vendor.BODisBase ? 1 : 0);
-                        if (m_Vendor.BODisLarge)
-                        {
-                            price = PriceTableLargeSmith[y][x];
-                        }
-                        else
-                        {
-                            price = PriceTableSmallSmith[y][x];
-                        }
-                    }
-                    else
-                    {
-                        if (!m_Vendor.BODisBase)
-                        {
-                            if (m_Vendor.BODmaterial == BulkMaterialType.None)
+                            y = (int)m_Vendor.BODmaterial + (!m_Vendor.BODisBase ? 1 : 0);
+                            if (m_Vendor.BODisLarge)
                             {
-                                y = 1;
+                                price = PriceTableLargeSmith[y][x];
                             }
                             else
                             {
-                                y = (int)m_Vendor.BODmaterial - 7;
+                                price = PriceTableSmallSmith[y][x];
                             }
-                        }
-
-                        if (m_Vendor.BODisLarge)
-                        {
-                            price = PriceTableLargeTailor[y][x];
                         }
                         else
                         {
-                            price = PriceTableSmallTailor[y][x];
+                            if (!m_Vendor.BODisBase)
+                            {
+                                if (m_Vendor.BODmaterial == BulkMaterialType.None)
+                                {
+                                    y = 1;
+                                }
+                                else
+                                {
+                                    y = (int)m_Vendor.BODmaterial - 7;
+                                }
+                            }
+
+                            if (m_Vendor.BODisLarge)
+                            {
+                                price = PriceTableLargeTailor[y][x];
+                            }
+                            else
+                            {
+                                price = PriceTableSmallTailor[y][x];
+                            }
                         }
-                    }
 
-                    if (price == 0)
-                    {
-                        m_Vendor.SayTo(m_From, 1152291);    // I won't be able to replace that bulk order with a better one.
-                        return;
-                    }
+                        if (price == 0)
+                        {
+                            m_Vendor.SayTo(m_From, 1152291);    // I won't be able to replace that bulk order with a better one.
+                            return;
+                        }
 
-                    price = (int)Math.Round(price * (m_Vendor.BribeCount + 1) * BribePriceRate);
-                    m_Vendor.SayTo(m_From, 1152288 + rank);             // 1152288: I should be easily able to find a better replacement for that bulk order.
-                                                                        // 1152289: I shouldn't have too much trouble finding a better replacement for that bulk order.
-                                                                        // 1152290: It will be very difficult for me to find a better replacement for this bulk order.
-                    m_Vendor.SayTo(m_From, 1152292, price.ToString());  // If you help me out, I'll help you out. I can replace that bulk order with a better one,
-                                                                        // but it's gonna cost you ~1_amt~ gold coin. Payment is due immediately. Just hand me the order and I'll pull the old switcheroo.
-                    m_Vendor.BribeDeed = ((Item)targeted).Serial;
-                    m_Vendor.BribeAmount = price;
+                        price = (int)Math.Round(price * (m_Vendor.BribeCount + 1) * BribePriceRate);
+                        m_Vendor.SayTo(m_From, 1152288 + rank);             // 1152288: I should be easily able to find a better replacement for that bulk order.
+                        // 1152289: I shouldn't have too much trouble finding a better replacement for that bulk order.
+                        // 1152290: It will be very difficult for me to find a better replacement for this bulk order.
+                        m_Vendor.SayTo(m_From, 1152292, price.ToString());  // If you help me out, I'll help you out. I can replace that bulk order with a better one,
+                        // but it's gonna cost you ~1_amt~ gold coin. Payment is due immediately. Just hand me the order and I'll pull the old switcheroo.
+                        m_Vendor.BribeDeed = ((Item)targeted).Serial;
+                        m_Vendor.BribeAmount = price;
+                    }
                 }
             }
-
             private static int[][] PriceTableSmallSmith = new int[][]
             {
                 // Qty  Std 10    15    20 Ex 10    15    20
