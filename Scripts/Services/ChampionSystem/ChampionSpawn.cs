@@ -35,92 +35,9 @@ namespace Server.Engines.CannedEvil
         private IdolOfTheChampion m_Idol;
 
         private bool m_HasBeenAdvanced;
-        private bool m_OneAdvance;
         private bool m_ConfinedRoaming;
 
         private Dictionary<Mobile, int> m_DamageEntries;
-
-        #region Champion Traps
-        private List<BaseTrap> m_Traps;
-
-        public List<BaseTrap> Traps
-        {
-            get { return m_Traps; }
-            set { m_Traps = value; }
-        }
-
-        public virtual int ComputeTrapCount()
-        {
-            int area = SpawnArea.Width * SpawnArea.Height;
-
-            return area / 100;
-        }
-
-        public virtual void ClearTraps()
-        {
-            for (int i = 0; i < m_Traps.Count; ++i)
-                m_Traps[i].Delete();
-
-            m_Traps.Clear();
-        }
-
-        public virtual void SpawnTrap()
-        {
-            Map map = this.Map;
-
-            if (map == null)
-                return;
-
-            BaseTrap trap = null;
-
-            int random = Utility.Random(100);
-
-            if (random < 22)
-                trap = new SawTrap(Utility.RandomBool() ? SawTrapType.WestFloor : SawTrapType.NorthFloor);
-            else if (random < 44)
-                trap = new SpikeTrap(Utility.RandomBool() ? SpikeTrapType.WestFloor : SpikeTrapType.NorthFloor);
-            else if (random < 66)
-                trap = new GasTrap(Utility.RandomBool() ? GasTrapType.NorthWall : GasTrapType.WestWall);
-            else if (random < 88)
-                trap = new FireColumnTrap();
-            else //if( random < 100 )
-                trap = new MushroomTrap();
-
-            if (trap == null)
-                return;
-
-            // try 10 times to find a valid location
-            for (int i = 0; i < 10; ++i)
-            {
-                int x = Utility.Random(SpawnArea.X, SpawnArea.Width);
-                int y = Utility.Random(SpawnArea.Y, SpawnArea.Height);
-                int z = this.Z - 15;
-
-                if (!map.CanFit(x, y, z, 16, false, false))
-                    z = map.GetAverageZ(x, y);
-
-                if (!map.CanFit(x, y, z, 16, false, false))
-                    continue;
-
-                trap.MoveToWorld(new Point3D(x, y, z), map);
-                m_Traps.Add(trap);
-
-                return;
-            }
-
-            trap.Delete();
-        }
-
-        public virtual void SetTraps()
-        {
-            ClearTraps();
-
-            int count = ComputeTrapCount();
-
-            for (int i = 0; i < count; i++)
-                SpawnTrap();
-        }
-        #endregion
 
         [CommandProperty(AccessLevel.GameMaster)]
         public bool ConfinedRoaming
@@ -147,13 +64,7 @@ namespace Server.Engines.CannedEvil
                 this.m_HasBeenAdvanced = value;
             }
         }
-        [CommandProperty(AccessLevel.GameMaster)]
-        public bool OneAdvance
-        {
-            get { return m_OneAdvance; }
-            set { m_OneAdvance = value; }
-        }
-    
+
         [Constructable]
         public ChampionSpawn()
             : base(0xBD2)
@@ -164,7 +75,6 @@ namespace Server.Engines.CannedEvil
             this.m_Creatures = new List<Mobile>();
             this.m_RedSkulls = new List<Item>();
             this.m_WhiteSkulls = new List<Item>();
-            this.m_Traps = new List<BaseTrap>(); //traps mod.
 
             this.m_Platform = new ChampionPlatform(this);
             this.m_Altar = new ChampionAltar(this);
@@ -327,7 +237,7 @@ namespace Server.Engines.CannedEvil
                     this.Stop();
 
                 PrimevalLichPuzzle.Update(this);
-				
+
                 this.InvalidateProperties();
             }
         }
@@ -421,8 +331,6 @@ namespace Server.Engines.CannedEvil
 
             this.m_Active = true;
             this.m_HasBeenAdvanced = false;
-            m_OneAdvance = false;
-
 
             if (this.m_Timer != null)
                 this.m_Timer.Stop();
@@ -434,7 +342,7 @@ namespace Server.Engines.CannedEvil
                 this.m_RestartTimer.Stop();
 
             this.m_RestartTimer = null;
-            SetTraps(); //traps mod
+
             if (this.m_Altar != null)
             {
                 if (this.m_Champion != null)
@@ -456,7 +364,6 @@ namespace Server.Engines.CannedEvil
 
             this.m_Active = false;
             this.m_HasBeenAdvanced = false;
-            m_OneAdvance = false;
 
             if (this.m_Timer != null)
                 this.m_Timer.Stop();
@@ -467,7 +374,7 @@ namespace Server.Engines.CannedEvil
                 this.m_RestartTimer.Stop();
 
             this.m_RestartTimer = null;
-            ClearTraps(); //traps mod
+
             if (this.m_Altar != null)
                 this.m_Altar.Hue = 0;
 
@@ -521,7 +428,6 @@ namespace Server.Engines.CannedEvil
             }
 
             this.m_HasBeenAdvanced = false;
-            m_OneAdvance = false;
 
             this.Start();
         }
@@ -530,7 +436,7 @@ namespace Server.Engines.CannedEvil
         private ScrollofTranscendence CreateRandomSoT(bool felucca)
         {
             int level = Utility.RandomMinMax(1, 5);
-			
+
             if (felucca)
                 level += 5;
 
@@ -548,7 +454,7 @@ namespace Server.Engines.CannedEvil
                 killer.SendLocalizedMessage(1094936); // You have received a Scroll of Transcendence!
             else
                 killer.SendLocalizedMessage(1049524); // You have received a scroll of power!
-			
+
             if (killer.Alive)
                 killer.AddToBackpack(scroll);
             else
@@ -558,19 +464,19 @@ namespace Server.Engines.CannedEvil
                 else
                     killer.AddToBackpack(scroll);
             }
-			
+
             // Justice reward
             PlayerMobile pm = (PlayerMobile)killer;
             for (int j = 0; j < pm.JusticeProtectors.Count; ++j)
             {
                 Mobile prot = (Mobile)pm.JusticeProtectors[j];
-				
+
                 if (prot.Map != killer.Map || prot.Kills >= 5 || prot.Criminal || !JusticeVirtue.CheckMapRegion(killer, prot))
                     continue;
 
                 int chance = 0;
 
-                switch ( VirtueHelper.GetLevel(prot, VirtueName.Justice) )
+                switch (VirtueHelper.GetLevel(prot, VirtueName.Justice))
                 {
                     case VirtueLevel.Seeker:
                         chance = 60;
@@ -590,7 +496,7 @@ namespace Server.Engines.CannedEvil
                         prot.SendLocalizedMessage(1049368); // You have been rewarded for your dedication to Justice!
 
                         SpecialScroll scrollDupe = Activator.CreateInstance(scroll.GetType()) as SpecialScroll;
-					
+
                         if (scrollDupe != null)
                         {
                             scrollDupe.Skill = scroll.Skill;
@@ -676,7 +582,7 @@ namespace Server.Engines.CannedEvil
                                     {
                                         PlayerMobile pm = (PlayerMobile)killer;
                                         double random = Utility.Random(49);
-										
+
                                         if (random <= 24)
                                         {
                                             ScrollofTranscendence SoTF = this.CreateRandomSoT(true);
@@ -1031,7 +937,7 @@ namespace Server.Engines.CannedEvil
         {
             int x, y;
 
-            switch( index )
+            switch (index)
             {
                 default:
                 case 0:
@@ -1297,9 +1203,7 @@ namespace Server.Engines.CannedEvil
         {
             base.Serialize(writer);
 
-            writer.Write((int)6); // version
-            //Version 6:
-            writer.WriteItemList<BaseTrap>(m_Traps, false);
+            writer.Write((int)5); // version
 
             writer.Write(this.m_DamageEntries.Count);
             foreach (KeyValuePair<Mobile, int> kvp in this.m_DamageEntries)
@@ -1344,13 +1248,8 @@ namespace Server.Engines.CannedEvil
 
             int version = reader.ReadInt();
 
-            switch( version )
+            switch (version)
             {
-                case 6:
-                    {
-                        m_Traps = reader.ReadStrongItemList<BaseTrap>();
-                        goto case 5;
-                    }
                 case 5:
                     {
                         int entries = reader.ReadInt();
@@ -1537,7 +1436,7 @@ namespace Server.Engines.CannedEvil
 
             int version = reader.ReadInt();
 
-            switch ( version )
+            switch (version)
             {
                 case 0:
                     {

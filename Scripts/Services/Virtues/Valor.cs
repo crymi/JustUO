@@ -1,91 +1,70 @@
 using System;
-using System.Collections;
-using Server;
-using Server.Items;
-using Server.Gumps;
+using Server.Engines.CannedEvil;
 using Server.Mobiles;
 using Server.Targeting;
-using Server.Engines.CannedEvil;
 
 namespace Server
 {
-	public class ValorVirtue
-	{
-		private static TimeSpan LossDelay = TimeSpan.FromDays( 7.0 );
-		private const int LossAmount = 250;
+    public class ValorVirtue
+    {
+        private static readonly TimeSpan LossDelay = TimeSpan.FromDays(7.0);
+        private const int LossAmount = 250;
+        public static void Initialize()
+        {
+            VirtueGump.Register(112, new OnVirtueUsed(OnVirtueUsed));
+        }
 
-		public static void Initialize()
-		{
-			VirtueGump.Register( 112, new OnVirtueUsed( OnVirtueUsed ) );
-		}
-
-		public static void OnVirtueUsed( Mobile from )
-		{
-			if( from.Alive )
-			{
-				from.SendLocalizedMessage( 1054034 ); // Target the Champion Idol of the Champion you wish to challenge!.
-				from.Target = new InternalTarget();
-			}
-		}
-
-		public static void CheckAtrophy( Mobile from )
-		{
-			PlayerMobile pm = from as PlayerMobile;
-
-			if( pm == null )
-				return;
-
-			try
-			{
-				if( (pm.LastValorLoss + LossDelay) < DateTime.UtcNow )
-				{
-					if( VirtueHelper.Atrophy( from, VirtueName.Valor, LossAmount ) )
-						from.SendLocalizedMessage( 1054040 ); // You have lost some Valor.
-
-					pm.LastValorLoss = DateTime.UtcNow;
-				}
-			}
-			catch
-			{
-			}
-		}
-
-		public static void Valor( Mobile from, object targ )
-		{
-			IdolOfTheChampion idol = targ as IdolOfTheChampion;
-            VirtueLevel vl = VirtueHelper.GetLevel(from, VirtueName.Valor);
-			if( idol == null || idol.Deleted || idol.Spawn == null || idol.Spawn.Deleted )
-				from.SendLocalizedMessage( 1054035 ); // You must target a Champion Idol to challenge the Champion's spawn!
-			else if( from.Hidden )
-				from.SendLocalizedMessage( 1052015 ); // You cannot do that while hidden.
-            else if (idol.Spawn.OneAdvance == true)
+        public static void OnVirtueUsed(Mobile from)
+        {
+            if (from.Alive)
             {
-                from.SendMessage("You have already advanced this Champion Spawn!");
+                from.SendLocalizedMessage(1054034); // Target the Champion Idol of the Champion you wish to challenge!.
+                from.Target = new InternalTarget();
             }
-            else if (idol.Spawn.OneAdvance == false && idol.Spawn.Active)
+        }
+
+        public static void CheckAtrophy(Mobile from)
+        {
+            PlayerMobile pm = from as PlayerMobile;
+
+            if (pm == null)
+                return;
+
+            try
             {
-                if (vl == VirtueLevel.Follower)
+                if ((pm.LastValorLoss + LossDelay) < DateTime.UtcNow)
                 {
-                    VirtueHelper.Atrophy(from, VirtueName.Valor, 5000);
-                    idol.Spawn.AdvanceLevel();
-                    idol.Spawn.OneAdvance = true;
-                }
-                else
-                    from.SendMessage("You must be a Follower of Valor to advance this Champ Spawn any further.");
+                    if (VirtueHelper.Atrophy(from, VirtueName.Valor, LossAmount))
+                        from.SendLocalizedMessage(1054040); // You have lost some Valor.
 
+                    pm.LastValorLoss = DateTime.UtcNow;
+                }
             }
+            catch
+            {
+            }
+        }
+
+        public static void Valor(Mobile from, object targ)
+        {
+            IdolOfTheChampion idol = targ as IdolOfTheChampion;
+
+            if (idol == null || idol.Deleted || idol.Spawn == null || idol.Spawn.Deleted)
+                from.SendLocalizedMessage(1054035); // You must target a Champion Idol to challenge the Champion's spawn!
+            else if (from.Hidden)
+                from.SendLocalizedMessage(1052015); // You cannot do that while hidden.
             else if (idol.Spawn.HasBeenAdvanced)
                 from.SendLocalizedMessage(1054038); // The Champion of this region has already been challenged!
             else
             {
-
+                VirtueLevel vl = VirtueHelper.GetLevel(from, VirtueName.Valor);
                 if (idol.Spawn.Active)
                 {
                     if (idol.Spawn.Champion != null)	//TODO: Message?
                         return;
 
                     int needed, consumed;
-                    switch( idol.Spawn.GetSubLevel() )
+                    switch (idol.Spawn.GetSubLevel())
                     {
                         case 0:
                             {
@@ -117,13 +96,6 @@ namespace Server
                         from.SendLocalizedMessage(1054037); // Your challenge is heard by the Champion of this region! Beware its wrath!
                         idol.Spawn.HasBeenAdvanced = true;
                         idol.Spawn.AdvanceLevel();
-                        int skulls = Utility.RandomMinMax(1, 3);
-                        Console.WriteLine("Random Was = " + skulls);
-                        while (skulls <= 3)
-                        {
-                            idol.Spawn.AdvanceLevel();
-                            skulls++;
-                        }
                     }
                     else
                         from.SendLocalizedMessage(1054039); // The Champion of this region ignores your challenge. You must further prove your valor.
@@ -136,15 +108,6 @@ namespace Server
                         from.SendLocalizedMessage(1054037); // Your challenge is heard by the Champion of this region! Beware its wrath!
                         idol.Spawn.EndRestart();
                         idol.Spawn.HasBeenAdvanced = true;
-                        idol.Spawn.AdvanceLevel();
-                        int skulls = Utility.RandomMinMax(1, 3);
-                        Console.WriteLine("Random Was = " + skulls);
-                        while (skulls <= 3)
-                        {
-                            idol.Spawn.AdvanceLevel();
-                            skulls++;
-                        }
-                        Console.WriteLine("This Gets Called Now.");
                     }
                     else
                     {
